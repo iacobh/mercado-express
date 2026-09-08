@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mercado Express</title>
+<style>
+:root{--azul:#102a43;--azul2:#1f4e79;--fondo:#f5f7fb;--texto:#172033;--gris:#6b7280;--borde:#e3e8ef;--verde:#16a34a;--rojo:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--fondo);color:var(--texto)}button,input,select,textarea{font:inherit}
+header{position:sticky;top:0;z-index:30;background:var(--azul);padding:14px 5%;display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;color:white;box-shadow:0 3px 14px #0002}
+.logo{font-size:25px;font-weight:800}.logo span{font-weight:400}.search{width:100%;padding:13px 15px;border:0;border-radius:10px;outline:none}.topbtn{border:0;border-radius:10px;background:white;color:var(--azul);padding:12px 14px;font-weight:800;cursor:pointer}
+.hero{margin:25px 5% 0;padding:42px;border-radius:22px;background:linear-gradient(135deg,var(--azul),var(--azul2));color:white}.hero h1{font-size:40px;margin:0 0 10px}.hero p{font-size:18px;margin:0}
+.section{padding:32px 5%}.section h2{margin:0 0 18px}.cats{display:flex;gap:10px;flex-wrap:wrap}.cat{border:1px solid var(--borde);background:white;padding:12px 17px;border-radius:11px;cursor:pointer}.cat.active{border-color:var(--azul);font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{background:white;border:1px solid var(--borde);border-radius:17px;overflow:hidden;box-shadow:0 4px 15px #0000000d}
+.pic{height:220px;background:#eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}.pic img{width:100%;height:100%;object-fit:cover}.emoji{font-size:85px}.body{padding:16px}.body h3{margin:0 0 8px}.price{font-size:23px;font-weight:800;margin:8px 0}.stock{font-size:13px;color:var(--verde);font-weight:700}.nostock{color:var(--rojo)}
+.actions2{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.buy,.view{border:0;padding:11px;border-radius:9px;font-weight:800;cursor:pointer}.buy{background:var(--verde);color:white}.view{background:#eef3f8;color:var(--azul)}
+.overlay{display:none;position:fixed;inset:0;background:#0008;z-index:100;align-items:center;justify-content:center;padding:18px}.overlay.show{display:flex}.modal{width:min(960px,100%);max-height:92vh;overflow:auto;background:white;border-radius:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--borde)}.modalhead h2{margin:0}.close{border:0;background:#eef2f7;width:38px;height:38px;border-radius:9px;font-size:20px;cursor:pointer}
+.admin{padding:22px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab{border:1px solid var(--borde);background:white;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700}.tab.active{background:var(--azul);color:white}.admin-grid{display:grid;grid-template-columns:360px 1fr;gap:25px}
+.form{background:#f8fafc;border:1px solid var(--borde);padding:18px;border-radius:15px}.form label,.checkout-form label{display:block;font-size:13px;font-weight:800;margin:13px 0 6px}.form input,.form select,.form textarea,.checkout-form input,.checkout-form textarea{width:100%;padding:11px;border:1px solid #cfd7e3;border-radius:9px;background:white}.form textarea,.checkout-form textarea{min-height:85px;resize:vertical}
+.save{width:100%;margin-top:16px;border:0;background:var(--azul);color:white;padding:12px;border-radius:9px;font-weight:800;cursor:pointer}.preview{width:100%;height:150px;object-fit:contain;background:#eef2f7;border-radius:10px;margin-top:10px;display:none}
+.admin-list{display:flex;flex-direction:column;gap:10px}.admin-item{display:grid;grid-template-columns:60px 1fr auto;gap:12px;align-items:center;border:1px solid var(--borde);padding:10px;border-radius:12px}.admin-thumb{width:60px;height:60px;object-fit:cover;background:#eef2f7;border-radius:9px}.actions{display:flex;gap:6px}.edit,.delete{border:0;padding:8px 10px;border-radius:8px;cursor:pointer}.edit{background:#e8f0f8;color:var(--azul)}.delete{background:#fee2e2;color:#991b1b}
+.cartarea{padding:22px}.cartrow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--borde)}.qtybox{display:flex;align-items:center;gap:7px}.qtybtn{width:30px;height:30px;border:1px solid var(--borde);background:white;border-radius:7px;cursor:pointer}.total{font-size:21px;font-weight:800;padding:18px 0}.checkoutbtn{width:100%;border:0;background:var(--verde);color:white;padding:14px;border-radius:10px;font-weight:800;cursor:pointer}.remove{border:0;background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;cursor:pointer}
+.checkout-form{padding:22px}.confirm{width:100%;border:0;background:var(--verde);color:white;padding:14px;border-radius:10px;font-weight:800;cursor:pointer;margin-top:16px}.detail{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:22px}.detailimg{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eef2f7;border-radius:16px}.detail h3{font-size:30px;margin:0 0 8px}.desc{color:#536172;line-height:1.55}
+.orders{display:flex;flex-direction:column;gap:14px}.order{border:1px solid var(--borde);background:white;border-radius:14px;padding:16px}.order-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.order h4{margin:0 0 4px}.order small{color:var(--gris)}.order-products{margin:12px 0;padding:10px 12px;background:#f8fafc;border-radius:9px;line-height:1.5}.status{padding:8px 10px;border:1px solid var(--borde);border-radius:8px}.order-total{font-size:18px;font-weight:800}
+.success{padding:35px;text-align:center}.success .check{font-size:62px}.success h2{margin:8px 0}.ordercode{display:inline-block;background:#eef3f8;padding:10px 14px;border-radius:9px;font-weight:800;color:var(--azul)}.empty{padding:35px;text-align:center;background:white;border:1px dashed #cbd5e1;border-radius:14px;color:var(--gris);grid-column:1/-1}.notice{font-size:12px;color:var(--gris);line-height:1.45;margin-top:12px}footer{text-align:center;color:#7b8794;padding:30px}
+@media(max-width:950px){.grid{grid-template-columns:repeat(3,1fr)}.admin-grid{grid-template-columns:1fr}}@media(max-width:700px){header{grid-template-columns:1fr auto auto}.logo{grid-column:1/2}.search{grid-row:2;grid-column:1/-1}.grid{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:32px}.detail{grid-template-columns:1fr}}@media(max-width:470px){.grid{grid-template-columns:1fr}.hero{padding:28px 22px}.cartrow{grid-template-columns:1fr auto}}
+</style>
+</head>
+<body>
+<header><div class="logo">Mercado <span>Express</span></div><input class="search" id="search" placeholder="Buscar productos..."><button class="topbtn" id="adminBtn">⚙️ Administrar</button><button class="topbtn" id="cartBtn">🛒 <span id="count">0</span></button></header>
+<div class="hero"><h1>Moda y tecnología, sin vueltas.</h1><p>Comprá directamente desde Mercado Express.</p></div>
+
+<section class="section"><h2>Categorías</h2><div class="cats"><button class="cat active" data-cat="todos">Todos</button><button class="cat" data-cat="ropa">👕 Ropa</button><button class="cat" data-cat="modulos">📱 Módulos</button><button class="cat" data-cat="accesorios">🔌 Accesorios</button></div></section>
+<section class="section"><h2>Productos</h2><div class="grid" id="grid"></div></section><footer>© 2026 Mercado Express</footer>
+
+<div class="overlay" id="detailOverlay"><div class="modal"><div class="modalhead"><h2>Producto</h2><button class="close" onclick="closeDetail()">×</button></div><div id="detailArea"></div></div></div>
+
+
+<div class="overlay" id="loginOverlay">
+ <div class="modal" style="width:min(430px,100%)">
+  <div class="modalhead"><h2>Acceso administrador</h2><button class="close" onclick="closeLogin()">×</button></div>
+  <div class="checkout-form">
+   <label>Usuario</label>
+   <input id="loginUser" value="admin" autocomplete="username">
+   <label>Contraseña</label>
+   <input id="loginPass" type="password" autocomplete="current-password">
+   <button class="confirm" onclick="loginAdmin()">Ingresar</button>
+   <div class="notice">El panel de administración está protegido.</div>
+  </div>
+ </div>
+</div>
+
+<div class="overlay" id="adminOverlay"><div class="modal"><div class="modalhead"><h2>Panel de administrador</h2><div style="display:flex;gap:8px"><button class="edit" onclick="logoutAdmin()">Cerrar sesión</button><button class="close" onclick="closeAdmin()">×</button></div></div><div class="admin">
+<div class="tabs"><button class="tab active" id="tabProducts" onclick="showAdminTab('products')">Productos</button><button class="tab" id="tabOrders" onclick="showAdminTab('orders')">Pedidos</button></div>
+<div id="adminProducts"><div class="admin-grid"><div class="form">
+<h3 id="formTitle">Agregar producto</h3><input type="hidden" id="editId">
+<label>Nombre</label><input id="name"><label>Precio ($ ARS)</label><input id="price" type="number"><label>Categoría</label><select id="category"><option value="ropa">Ropa</option><option value="modulos">Módulos</option><option value="accesorios">Accesorios</option></select><label>Descripción</label><textarea id="desc"></textarea><label>Stock</label><select id="stock"><option value="1">En stock</option><option value="0">Sin stock</option></select><label>Foto</label><input id="photo" type="file" accept="image/*"><img id="preview" class="preview"><button class="save" onclick="saveProduct()">Guardar producto</button>
+</div><div><h3>Productos publicados</h3><div class="admin-list" id="adminList"></div></div></div></div>
+<div id="adminOrders" style="display:none"><h3>Pedidos recibidos</h3><div class="orders" id="ordersList"></div></div>
+</div></div></div>
+
+<div class="overlay" id="cartOverlay"><div class="modal" style="width:min(650px,100%)"><div class="modalhead"><h2>Carrito</h2><button class="close" onclick="closeCart()">×</button></div><div class="cartarea" id="cartArea"></div></div></div>
+
+<div class="overlay" id="checkoutOverlay"><div class="modal" style="width:min(600px,100%)"><div class="modalhead"><h2>Finalizar pedido</h2><button class="close" onclick="closeCheckout()">×</button></div><div class="checkout-form">
+<label>Nombre y apellido</label><input id="buyerName"><label>Teléfono</label><input id="buyerPhone"><label>Email</label><input id="buyerEmail" type="email"><label>Dirección / zona</label><input id="buyerAddress"><label>Notas</label><textarea id="buyerNotes"></textarea><button class="confirm" onclick="confirmOrder()">Confirmar pedido</button>
+</div></div></div>
+
+<div class="overlay" id="successOverlay"><div class="modal" style="width:min(520px,100%)"><div class="success"><div class="check">✅</div><h2>Pedido confirmado</h2><p>Tu pedido quedó guardado en Mercado Express.</p><div class="ordercode" id="successCode"></div><button class="save" onclick="closeSuccess()">Volver a la tienda</button></div></div></div>
+
+<script>
+let products=[], cart=[], currentCat="todos", editing=null;
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const emoji=c=>c==="ropa"?"👕":c==="modulos"?"📱":"🔌";
+const picture=p=>p.image?`<img src="${p.image}" alt="${p.name}">`:`<div class="emoji">${emoji(p.category)}</div>`;
+
+async function loadProducts(){products=await fetch("/api/products").then(r=>r.json());render();renderAdmin()}
+async function loadOrders(){
+ const r=await fetch("/api/orders");
+ if(r.status===401){return}
+ const orders=await r.json();
+ renderOrders(orders)
+}
+function updateCount(){document.getElementById("count").textContent=cart.reduce((s,x)=>s+x.qty,0)}
+
+function render(){
+ const q=document.getElementById("search").value.toLowerCase().trim();
+ const arr=products.filter(p=>(currentCat==="todos"||p.category===currentCat)&&p.name.toLowerCase().includes(q));
+ const g=document.getElementById("grid");g.innerHTML="";
+ if(!arr.length){g.innerHTML='<div class="empty">No encontramos productos.</div>';return}
+ arr.forEach(p=>{let e=document.createElement("article");e.className="card";e.innerHTML=`<div class="pic" onclick="openDetail(${p.id})">${picture(p)}</div><div class="body"><h3>${p.name}</h3><div class="price">${money(p.price)}</div><div class="${p.stock?'stock':'stock nostock'}">${p.stock?'✓ En stock':'Sin stock'}</div><div class="actions2"><button class="buy" ${p.stock?'':'disabled'} onclick="addCart(${p.id})">${p.stock?'Agregar':'No disponible'}</button><button class="view" onclick="openDetail(${p.id})">Ver</button></div></div>`;g.appendChild(e)})
+}
+document.getElementById("search").oninput=render;
+document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active"));b.classList.add("active");currentCat=b.dataset.cat;render()});
+
+function openDetail(id){const p=products.find(x=>x.id===id);const visual=p.image?`<img class="detailimg" src="${p.image}">`:`<div class="detailimg" style="display:flex;align-items:center;justify-content:center;font-size:120px">${emoji(p.category)}</div>`;document.getElementById("detailArea").innerHTML=`<div class="detail">${visual}<div><small>${p.category.toUpperCase()}</small><h3>${p.name}</h3><div class="price">${money(p.price)}</div><div class="${p.stock?'stock':'stock nostock'}">${p.stock?'✓ En stock':'Sin stock'}</div><p class="desc">${p.description||""}</p><button class="buy" style="margin-top:12px" ${p.stock?'':'disabled'} onclick="addCart(${p.id});closeDetail()">Agregar al carrito</button></div></div>`;document.getElementById("detailOverlay").classList.add("show")}
+function closeDetail(){document.getElementById("detailOverlay").classList.remove("show")}
+
+function addCart(id){let x=cart.find(i=>i.id===id);if(x)x.qty++;else cart.push({id,qty:1});updateCount()}
+function changeQty(id,d){let x=cart.find(i=>i.id===id);if(!x)return;x.qty+=d;if(x.qty<=0)cart=cart.filter(i=>i.id!==id);updateCount();openCart()}
+function removeCart(id){cart=cart.filter(i=>i.id!==id);updateCount();openCart()}
+function cartTotal(){return cart.reduce((s,i)=>{let p=products.find(x=>x.id===i.id);return s+(p?p.price*i.qty:0)},0)}
+function openCart(){let a=document.getElementById("cartArea");if(!cart.length)a.innerHTML='<div class="empty">El carrito está vacío.</div>';else a.innerHTML=cart.map(i=>{let p=products.find(x=>x.id===i.id);if(!p)return"";return `<div class="cartrow"><div><strong>${p.name}</strong><br><small>${money(p.price)} c/u</small></div><div class="qtybox"><button class="qtybtn" onclick="changeQty(${p.id},-1)">−</button><strong>${i.qty}</strong><button class="qtybtn" onclick="changeQty(${p.id},1)">+</button></div><button class="remove" onclick="removeCart(${p.id})">Quitar</button></div>`}).join("")+`<div class="total">Total: ${money(cartTotal())}</div><button class="checkoutbtn" onclick="openCheckout()">Finalizar compra</button>`;document.getElementById("cartOverlay").classList.add("show")}
+function closeCart(){document.getElementById("cartOverlay").classList.remove("show")}
+function openCheckout(){if(!cart.length)return;closeCart();document.getElementById("checkoutOverlay").classList.add("show")}
+function closeCheckout(){document.getElementById("checkoutOverlay").classList.remove("show")}
+
+async function confirmOrder(){
+ const customer={name:buyerName.value.trim(),phone:buyerPhone.value.trim(),email:buyerEmail.value.trim(),address:buyerAddress.value.trim(),notes:buyerNotes.value.trim()};
+ if(!customer.name||!customer.phone||!customer.address){alert("Completá nombre, teléfono y dirección.");return}
+ const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer,items:cart})});
+ const data=await r.json();if(!r.ok){alert(data.error||"No se pudo crear el pedido");return}
+ cart=[];updateCount();closeCheckout();document.getElementById("successCode").textContent=data.code;document.getElementById("successOverlay").classList.add("show");["buyerName","buyerPhone","buyerEmail","buyerAddress","buyerNotes"].forEach(id=>document.getElementById(id).value="");loadOrders()
+}
+function closeSuccess(){document.getElementById("successOverlay").classList.remove("show")}
+
+
+async function openAdmin(){
+ const s=await fetch("/api/admin/status").then(r=>r.json());
+ if(!s.logged_in){
+   document.getElementById("loginOverlay").classList.add("show");
+   return;
+ }
+ await openAdminPanel();
+}
+async function openAdminPanel(){
+ renderAdmin();
+ await loadOrders();
+ showAdminTab("products");
+ document.getElementById("adminOverlay").classList.add("show");
+}
+function closeLogin(){document.getElementById("loginOverlay").classList.remove("show")}
+async function loginAdmin(){
+ const username=document.getElementById("loginUser").value.trim();
+ const password=document.getElementById("loginPass").value;
+ const r=await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
+ const data=await r.json();
+ if(!r.ok){alert(data.error||"No se pudo iniciar sesión");return}
+ document.getElementById("loginPass").value="";
+ closeLogin();
+ await openAdminPanel();
+}
+async function logoutAdmin(){
+ await fetch("/api/admin/logout",{method:"POST"});
+ closeAdmin();
+ alert("Sesión de administrador cerrada.");
+}
+
+function closeAdmin(){document.getElementById("adminOverlay").classList.remove("show")}
+function showAdminTab(tab){const prod=tab==="products";adminProducts.style.display=prod?"block":"none";adminOrders.style.display=prod?"none":"block";tabProducts.classList.toggle("active",prod);tabOrders.classList.toggle("active",!prod);if(!prod)loadOrders()}
+document.getElementById("adminBtn").onclick=openAdmin;
+
+function resetForm(){
+ editing=null;
+ document.getElementById("editId").value="";
+ document.getElementById("formTitle").textContent="Agregar producto";
+ document.getElementById("name").value="";
+ document.getElementById("price").value="";
+ document.getElementById("desc").value="";
+ document.getElementById("category").value="ropa";
+ document.getElementById("stock").value="1";
+ document.getElementById("photo").value="";
+ document.getElementById("preview").style.display="none";
+}
+
+async function saveProduct(){
+ try{
+   const nameEl=document.getElementById("name");
+   const priceEl=document.getElementById("price");
+   const categoryEl=document.getElementById("category");
+   const descEl=document.getElementById("desc");
+   const stockEl=document.getElementById("stock");
+   const photoEl=document.getElementById("photo");
+
+   const productName=nameEl.value.trim();
+   const productPrice=priceEl.value;
+
+   if(!productName || !productPrice){
+     alert("Completá nombre y precio.");
+     return;
+   }
+
+   const fd=new FormData();
+   fd.append("name",productName);
+   fd.append("price",productPrice);
+   fd.append("category",categoryEl.value);
+   fd.append("description",descEl.value.trim());
+   fd.append("stock",stockEl.value);
+
+   if(photoEl.files && photoEl.files[0]){
+     fd.append("image",photoEl.files[0]);
+   }
+
+   const url=editing ? `/api/products/${editing}` : "/api/products";
+   const method=editing ? "PUT" : "POST";
+
+   const r=await fetch(url,{method,body:fd});
+   let data={};
+   try{ data=await r.json(); }catch(e){}
+
+   if(!r.ok){
+     alert(data.error || "No se pudo guardar el producto.");
+     return;
+   }
+
+   alert(editing ? "Producto actualizado." : "Producto guardado.");
+   resetForm();
+   await loadProducts();
+ }catch(err){
+   console.error(err);
+   alert("Hubo un error al guardar el producto. Revisá la consola del navegador.");
+ }
+}
+
+function editProduct(id){
+ const p=products.find(x=>x.id===id);
+ editing=id;
+ document.getElementById("editId").value=id;
+ document.getElementById("formTitle").textContent="Editar producto";
+ document.getElementById("name").value=p.name;
+ document.getElementById("price").value=p.price;
+ document.getElementById("category").value=p.category;
+ document.getElementById("desc").value=p.description||"";
+ document.getElementById("stock").value=String(p.stock);
+ const pr=document.getElementById("preview");
+ pr.style.display=p.image?"block":"none";
+ if(p.image) pr.src=p.image;
+}
+async function deleteProduct(id){if(!confirm("¿Eliminar este producto?"))return;await fetch(`/api/products/${id}`,{method:"DELETE"});cart=cart.filter(x=>x.id!==id);updateCount();await loadProducts()}
+function renderAdmin(){const list=document.getElementById("adminList");list.innerHTML="";products.forEach(p=>{let row=document.createElement("div");row.className="admin-item";row.innerHTML=`<div class="pic admin-thumb">${picture(p)}</div><div><strong>${p.name}</strong><div>${money(p.price)} · ${p.stock?'En stock':'Sin stock'}</div></div><div class="actions"><button class="edit" onclick="editProduct(${p.id})">Editar</button><button class="delete" onclick="deleteProduct(${p.id})">Eliminar</button></div>`;list.appendChild(row)})}
+
+function renderOrders(orders){const list=document.getElementById("ordersList");if(!orders.length){list.innerHTML='<div class="empty">Todavía no hay pedidos.</div>';return}list.innerHTML=orders.map(o=>`<div class="order"><div class="order-top"><div><h4>${o.code}</h4><small>${o.created_at}</small><p><strong>${o.customer_name}</strong><br>${o.customer_phone}<br>${o.customer_email||""}<br>${o.customer_address}</p></div><select class="status" onchange="changeStatus(${o.id},this.value)">${["Pendiente","Preparando","Enviado","Entregado","Cancelado"].map(s=>`<option ${o.status===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="order-products">${o.items.map(i=>`${i.product_name} × ${i.quantity} — ${money(i.price*i.quantity)}`).join("<br>")}</div>${o.notes?`<p><strong>Notas:</strong> ${o.notes}</p>`:""}<div class="order-total">Total: ${money(o.total)}</div></div>`).join("")}
+async function changeStatus(id,status){await fetch(`/api/orders/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});loadOrders()}
+
+document.getElementById("cartBtn").onclick=openCart;
+["detailOverlay","loginOverlay","adminOverlay","cartOverlay","checkoutOverlay","successOverlay"].forEach(id=>document.getElementById(id).onclick=e=>{if(e.target.id===id)e.target.classList.remove("show")});
+updateCount();loadProducts();
+</script>
+</body>
+</html>
