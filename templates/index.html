@@ -3,237 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Mercado Express</title>
+<meta name="description" content="Compra y Venta: publicá productos, encontrá oportunidades y comprá online.">
+<title>Compra y Venta | Marketplace</title>
 <style>
 :root{--azul:#102a43;--azul2:#1f4e79;--fondo:#f5f7fb;--texto:#172033;--gris:#6b7280;--borde:#e3e8ef;--verde:#16a34a;--rojo:#dc2626}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--fondo);color:var(--texto)}button,input,select,textarea{font:inherit}
-header{position:sticky;top:0;z-index:30;background:var(--azul);padding:14px 5%;display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;color:white;box-shadow:0 3px 14px #0002}
-.logo{font-size:25px;font-weight:800}.logo span{font-weight:400}.search{width:100%;padding:13px 15px;border:0;border-radius:10px;outline:none}.topbtn{border:0;border-radius:10px;background:white;color:var(--azul);padding:12px 14px;font-weight:800;cursor:pointer}
-.hero{margin:25px 5% 0;padding:42px;border-radius:22px;background:linear-gradient(135deg,var(--azul),var(--azul2));color:white}.hero h1{font-size:40px;margin:0 0 10px}.hero p{font-size:18px;margin:0}
-.section{padding:32px 5%}.section h2{margin:0 0 18px}.cats{display:flex;gap:10px;flex-wrap:wrap}.cat{border:1px solid var(--borde);background:white;padding:12px 17px;border-radius:11px;cursor:pointer}.cat.active{border-color:var(--azul);font-weight:800}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{background:white;border:1px solid var(--borde);border-radius:17px;overflow:hidden;box-shadow:0 4px 15px #0000000d}
-.pic{height:220px;background:#eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}.pic img{width:100%;height:100%;object-fit:cover}.emoji{font-size:85px}.body{padding:16px}.body h3{margin:0 0 8px}.price{font-size:23px;font-weight:800;margin:8px 0}.stock{font-size:13px;color:var(--verde);font-weight:700}.nostock{color:var(--rojo)}
-.actions2{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.buy,.view{border:0;padding:11px;border-radius:9px;font-weight:800;cursor:pointer}.buy{background:var(--verde);color:white}.view{background:#eef3f8;color:var(--azul)}
-.overlay{display:none;position:fixed;inset:0;background:#0008;z-index:100;align-items:center;justify-content:center;padding:18px}.overlay.show{display:flex}.modal{width:min(960px,100%);max-height:92vh;overflow:auto;background:white;border-radius:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--borde)}.modalhead h2{margin:0}.close{border:0;background:#eef2f7;width:38px;height:38px;border-radius:9px;font-size:20px;cursor:pointer}
-.admin{padding:22px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab{border:1px solid var(--borde);background:white;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700}.tab.active{background:var(--azul);color:white}.admin-grid{display:grid;grid-template-columns:360px 1fr;gap:25px}
-.form{background:#f8fafc;border:1px solid var(--borde);padding:18px;border-radius:15px}.form label,.checkout-form label{display:block;font-size:13px;font-weight:800;margin:13px 0 6px}.form input,.form select,.form textarea,.checkout-form input,.checkout-form textarea{width:100%;padding:11px;border:1px solid #cfd7e3;border-radius:9px;background:white}.form textarea,.checkout-form textarea{min-height:85px;resize:vertical}
-.save{width:100%;margin-top:16px;border:0;background:var(--azul);color:white;padding:12px;border-radius:9px;font-weight:800;cursor:pointer}.preview{width:100%;height:150px;object-fit:contain;background:#eef2f7;border-radius:10px;margin-top:10px;display:none}
-.admin-list{display:flex;flex-direction:column;gap:10px}.admin-item{display:grid;grid-template-columns:60px 1fr auto;gap:12px;align-items:center;border:1px solid var(--borde);padding:10px;border-radius:12px}.admin-thumb{width:60px;height:60px;object-fit:cover;background:#eef2f7;border-radius:9px}.actions{display:flex;gap:6px}.edit,.delete{border:0;padding:8px 10px;border-radius:8px;cursor:pointer}.edit{background:#e8f0f8;color:var(--azul)}.delete{background:#fee2e2;color:#991b1b}
-.cartarea{padding:22px}.cartrow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--borde)}.qtybox{display:flex;align-items:center;gap:7px}.qtybtn{width:30px;height:30px;border:1px solid var(--borde);background:white;border-radius:7px;cursor:pointer}.total{font-size:21px;font-weight:800;padding:18px 0}.checkoutbtn{width:100%;border:0;background:var(--verde);color:white;padding:14px;border-radius:10px;font-weight:800;cursor:pointer}.remove{border:0;background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;cursor:pointer}
-.checkout-form{padding:22px}.confirm{width:100%;border:0;background:var(--verde);color:white;padding:14px;border-radius:10px;font-weight:800;cursor:pointer;margin-top:16px}.detail{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:22px}.detailimg{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eef2f7;border-radius:16px}.detail h3{font-size:30px;margin:0 0 8px}.desc{color:#536172;line-height:1.55}
-.orders{display:flex;flex-direction:column;gap:14px}.order{border:1px solid var(--borde);background:white;border-radius:14px;padding:16px}.order-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.order h4{margin:0 0 4px}.order small{color:var(--gris)}.order-products{margin:12px 0;padding:10px 12px;background:#f8fafc;border-radius:9px;line-height:1.5}.status{padding:8px 10px;border:1px solid var(--borde);border-radius:8px}.order-total{font-size:18px;font-weight:800}
-.success{padding:35px;text-align:center}.success .check{font-size:62px}.success h2{margin:8px 0}.ordercode{display:inline-block;background:#eef3f8;padding:10px 14px;border-radius:9px;font-weight:800;color:var(--azul)}.empty{padding:35px;text-align:center;background:white;border:1px dashed #cbd5e1;border-radius:14px;color:var(--gris);grid-column:1/-1}.notice{font-size:12px;color:var(--gris);line-height:1.45;margin-top:12px}footer{text-align:center;color:#7b8794;padding:30px}
-@media(max-width:950px){.grid{grid-template-columns:repeat(3,1fr)}.admin-grid{grid-template-columns:1fr}}@media(max-width:700px){header{grid-template-columns:1fr auto auto}.logo{grid-column:1/2}.search{grid-row:2;grid-column:1/-1}.grid{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:32px}.detail{grid-template-columns:1fr}}@media(max-width:470px){.grid{grid-template-columns:1fr}.hero{padding:28px 22px}.cartrow{grid-template-columns:1fr auto}}
+header{position:sticky;top:0;z-index:30;background:var(--azul);padding:14px 5%;display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center;color:white;box-shadow:0 3px 14px #0002}.logo{font-size:25px;font-weight:800;white-space:nowrap}.logo span{font-weight:400}.search{width:100%;padding:13px 15px;border:0;border-radius:10px;outline:none}.topbtn{border:0;border-radius:10px;background:white;color:var(--azul);padding:12px 14px;font-weight:800;cursor:pointer}.publishTop{background:#ffd166;color:#172033}
+.hero{margin:25px 5% 0;padding:42px;border-radius:22px;background:linear-gradient(135deg,var(--azul),var(--azul2));color:white}.hero h1{font-size:40px;margin:0 0 10px}.hero p{font-size:18px;margin:0 0 18px}.hero button{border:0;padding:13px 18px;border-radius:10px;background:#ffd166;color:#172033;font-weight:800;cursor:pointer}.section{padding:32px 5%}.section h2{margin:0 0 18px}.cats{display:flex;gap:10px;flex-wrap:wrap}.cat{border:1px solid var(--borde);background:white;padding:12px 17px;border-radius:11px;cursor:pointer}.cat.active{border-color:var(--azul);font-weight:800}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{background:white;border:1px solid var(--borde);border-radius:17px;overflow:hidden;box-shadow:0 4px 15px #0000000d}.pic{height:220px;background:#eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}.pic img{width:100%;height:100%;object-fit:cover}.emoji{font-size:85px}.body{padding:16px}.body h3{margin:0 0 8px}.price{font-size:23px;font-weight:800;margin:8px 0}.seller{font-size:13px;color:var(--gris);margin-top:5px}.stock{font-size:13px;color:var(--verde);font-weight:700}.nostock{color:var(--rojo)}.actions2{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.buy,.view{border:0;padding:11px;border-radius:9px;font-weight:800;cursor:pointer}.buy{background:var(--verde);color:white}.view{background:#eef3f8;color:var(--azul)}
+.overlay{display:none;position:fixed;inset:0;background:#0008;z-index:100;align-items:center;justify-content:center;padding:18px}.overlay.show{display:flex}.modal{width:min(960px,100%);max-height:92vh;overflow:auto;background:white;border-radius:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--borde)}.modalhead h2{margin:0}.close{border:0;background:#eef2f7;width:38px;height:38px;border-radius:9px;font-size:20px;cursor:pointer}.formbox{padding:22px}.formbox label{display:block;font-size:13px;font-weight:800;margin:13px 0 6px}.formbox input,.formbox select,.formbox textarea{width:100%;padding:11px;border:1px solid #cfd7e3;border-radius:9px;background:white}.formbox textarea{min-height:85px;resize:vertical}.save{width:100%;margin-top:16px;border:0;background:var(--azul);color:white;padding:12px;border-radius:9px;font-weight:800;cursor:pointer}.switchlink{background:none;border:0;color:var(--azul2);font-weight:800;cursor:pointer;margin-top:12px}.notice{font-size:12px;color:var(--gris);line-height:1.5;margin-top:12px}.commission{background:#fff8dc;border:1px solid #f6d568;padding:12px;border-radius:10px;margin-top:14px;font-size:13px}.mylist{display:flex;flex-direction:column;gap:10px;margin-top:18px}.myitem{display:grid;grid-template-columns:1fr auto;gap:12px;border:1px solid var(--borde);padding:12px;border-radius:10px}.delete{border:0;background:#fee2e2;color:#991b1b;padding:8px 10px;border-radius:8px;cursor:pointer}
+.admin{padding:22px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab{border:1px solid var(--borde);background:white;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700}.tab.active{background:var(--azul);color:white}.admin-grid{display:grid;grid-template-columns:360px 1fr;gap:25px}.admin-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid var(--borde);padding:10px;border-radius:12px}.actions{display:flex;gap:6px}.edit{border:0;padding:8px 10px;border-radius:8px;cursor:pointer;background:#e8f0f8;color:var(--azul)}
+.cartarea{padding:22px}.cartrow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--borde)}.qtybox{display:flex;align-items:center;gap:7px}.qtybtn{width:30px;height:30px;border:1px solid var(--borde);background:white;border-radius:7px;cursor:pointer}.total{font-size:21px;font-weight:800;padding:18px 0}.checkoutbtn,.confirm{width:100%;border:0;background:var(--verde);color:white;padding:14px;border-radius:10px;font-weight:800;cursor:pointer;margin-top:16px}.remove{border:0;background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;cursor:pointer}.detail{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:22px}.detailimg{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eef2f7;border-radius:16px}.detail h3{font-size:30px;margin:0 0 8px}.desc{color:#536172;line-height:1.55}.orders{display:flex;flex-direction:column;gap:14px}.order{border:1px solid var(--borde);background:white;border-radius:14px;padding:16px}.order-top{display:flex;justify-content:space-between;gap:12px}.order-products{margin:12px 0;padding:10px 12px;background:#f8fafc;border-radius:9px;line-height:1.6}.status{padding:8px;border:1px solid var(--borde);border-radius:8px}.empty{padding:35px;text-align:center;background:white;border:1px dashed #cbd5e1;border-radius:14px;color:var(--gris);grid-column:1/-1}.success{padding:35px;text-align:center}.ordercode{display:inline-block;background:#eef3f8;padding:10px 14px;border-radius:9px;font-weight:800;color:var(--azul)}footer{text-align:center;color:#7b8794;padding:30px}
+@media(max-width:1050px){header{grid-template-columns:auto 1fr auto auto}.publishTop{display:none}.grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){header{grid-template-columns:1fr auto auto}.logo{grid-column:1/2}.search{grid-row:2;grid-column:1/-1}.adminTop{display:none}.grid{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:32px}.detail,.admin-grid{grid-template-columns:1fr}}@media(max-width:470px){.grid{grid-template-columns:1fr}.hero{padding:28px 22px}.cartrow{grid-template-columns:1fr auto}}
 </style>
 </head>
 <body>
-<header><div class="logo">Mercado <span>Express</span></div><input class="search" id="search" placeholder="Buscar productos..."><button class="topbtn" id="adminBtn">⚙️ Administrar</button><button class="topbtn" id="cartBtn">🛒 <span id="count">0</span></button></header>
-<div class="hero"><h1>Moda y tecnología, sin vueltas.</h1><p>Comprá directamente desde Mercado Express.</p></div>
+<header><div class="logo">Compra <span>y Venta</span></div><input class="search" id="search" placeholder="Buscar productos..."><button class="topbtn publishTop" onclick="openPublish()">＋ Publicar</button><button class="topbtn" id="accountBtn" onclick="openAccount()">👤 Ingresar</button><button class="topbtn adminTop" onclick="openAdmin()">⚙️</button><button class="topbtn" onclick="openCart()">🛒 <span id="count">0</span></button></header>
+<div class="hero"><h1>Comprá, vendé y publicá.</h1><p>Un marketplace donde cualquier persona puede ofrecer sus productos.</p><button onclick="openPublish()">Publicar un producto</button></div>
+<section class="section"><h2>Categorías</h2><div class="cats"><button class="cat active" data-cat="todos">Todos</button><button class="cat" data-cat="ropa">👕 Ropa</button><button class="cat" data-cat="tecnologia">📱 Tecnología</button><button class="cat" data-cat="hogar">🏠 Hogar</button><button class="cat" data-cat="otros">📦 Otros</button></div></section>
+<section class="section"><h2>Productos</h2><div class="grid" id="grid"></div></section><footer>© 2026 Compra y Venta · Marketplace</footer>
 
-<section class="section"><h2>Categorías</h2><div class="cats"><button class="cat active" data-cat="todos">Todos</button><button class="cat" data-cat="ropa">👕 Ropa</button><button class="cat" data-cat="modulos">📱 Módulos</button><button class="cat" data-cat="accesorios">🔌 Accesorios</button></div></section>
-<section class="section"><h2>Productos</h2><div class="grid" id="grid"></div></section><footer>© 2026 Mercado Express</footer>
+<div class="overlay" id="detailOverlay"><div class="modal"><div class="modalhead"><h2>Producto</h2><button class="close" onclick="closeOverlay('detailOverlay')">×</button></div><div id="detailArea"></div></div></div>
 
-<div class="overlay" id="detailOverlay"><div class="modal"><div class="modalhead"><h2>Producto</h2><button class="close" onclick="closeDetail()">×</button></div><div id="detailArea"></div></div></div>
+<div class="overlay" id="accountOverlay"><div class="modal" style="width:min(440px,100%)"><div class="modalhead"><h2 id="accountTitle">Ingresar</h2><button class="close" onclick="closeOverlay('accountOverlay')">×</button></div><div class="formbox" id="accountBody"></div></div></div>
 
+<div class="overlay" id="publishOverlay"><div class="modal" style="width:min(560px,100%)"><div class="modalhead"><h2>Publicar producto</h2><button class="close" onclick="closeOverlay('publishOverlay')">×</button></div><div class="formbox"><label>Nombre</label><input id="pubName"><label>Precio</label><input id="pubPrice" type="number" min="1"><label>Categoría</label><select id="pubCategory"><option value="ropa">Ropa</option><option value="tecnologia">Tecnología</option><option value="hogar">Hogar</option><option value="otros">Otros</option></select><label>Descripción</label><textarea id="pubDesc"></textarea><label>Foto</label><input id="pubPhoto" type="file" accept="image/*"><div class="commission"><strong>Comisión de la plataforma: 10%</strong><br>Cuando integremos el pago online, por una venta de $100.000 la comisión de Compra y Venta será $10.000 antes de los costos del procesador de pago.</div><button class="save" onclick="publishProduct()">Publicar</button><div class="notice">El pago con tarjeta todavía no está activado en esta versión. Lo conectamos en la próxima etapa.</div></div></div></div>
 
-<div class="overlay" id="loginOverlay">
- <div class="modal" style="width:min(430px,100%)">
-  <div class="modalhead"><h2>Acceso administrador</h2><button class="close" onclick="closeLogin()">×</button></div>
-  <div class="checkout-form">
-   <label>Usuario</label>
-   <input id="loginUser" value="admin" autocomplete="username">
-   <label>Contraseña</label>
-   <input id="loginPass" type="password" autocomplete="current-password">
-   <button class="confirm" onclick="loginAdmin()">Ingresar</button>
-   <div class="notice">El panel de administración está protegido.</div>
-  </div>
- </div>
-</div>
+<div class="overlay" id="myOverlay"><div class="modal" style="width:min(650px,100%)"><div class="modalhead"><h2>Mi cuenta</h2><button class="close" onclick="closeOverlay('myOverlay')">×</button></div><div class="formbox"><div id="myUser"></div><button class="save" onclick="openPublish();closeOverlay('myOverlay')">＋ Publicar producto</button><h3>Mis publicaciones</h3><div id="myProducts" class="mylist"></div><button class="switchlink" onclick="logoutUser()">Cerrar sesión</button></div></div></div>
 
-<div class="overlay" id="adminOverlay"><div class="modal"><div class="modalhead"><h2>Panel de administrador</h2><div style="display:flex;gap:8px"><button class="edit" onclick="logoutAdmin()">Cerrar sesión</button><button class="close" onclick="closeAdmin()">×</button></div></div><div class="admin">
-<div class="tabs"><button class="tab active" id="tabProducts" onclick="showAdminTab('products')">Productos</button><button class="tab" id="tabOrders" onclick="showAdminTab('orders')">Pedidos</button></div>
-<div id="adminProducts"><div class="admin-grid"><div class="form">
-<h3 id="formTitle">Agregar producto</h3><input type="hidden" id="editId">
-<label>Nombre</label><input id="name"><label>Precio ($ ARS)</label><input id="price" type="number"><label>Categoría</label><select id="category"><option value="ropa">Ropa</option><option value="modulos">Módulos</option><option value="accesorios">Accesorios</option></select><label>Descripción</label><textarea id="desc"></textarea><label>Stock</label><select id="stock"><option value="1">En stock</option><option value="0">Sin stock</option></select><label>Foto</label><input id="photo" type="file" accept="image/*"><img id="preview" class="preview"><button class="save" onclick="saveProduct()">Guardar producto</button>
-</div><div><h3>Productos publicados</h3><div class="admin-list" id="adminList"></div></div></div></div>
-<div id="adminOrders" style="display:none"><h3>Pedidos recibidos</h3><div class="orders" id="ordersList"></div></div>
-</div></div></div>
+<div class="overlay" id="cartOverlay"><div class="modal" style="width:min(650px,100%)"><div class="modalhead"><h2>Carrito</h2><button class="close" onclick="closeOverlay('cartOverlay')">×</button></div><div class="cartarea" id="cartArea"></div></div></div>
+<div class="overlay" id="checkoutOverlay"><div class="modal" style="width:min(600px,100%)"><div class="modalhead"><h2>Finalizar pedido</h2><button class="close" onclick="closeOverlay('checkoutOverlay')">×</button></div><div class="formbox"><label>Nombre y apellido</label><input id="buyerName"><label>Teléfono</label><input id="buyerPhone"><label>Email</label><input id="buyerEmail" type="email"><label>Dirección / zona</label><input id="buyerAddress"><label>Notas</label><textarea id="buyerNotes"></textarea><button class="confirm" onclick="confirmOrder()">Confirmar pedido</button><div class="notice">En la próxima etapa este botón se reemplaza por el pago con tarjeta.</div></div></div></div>
+<div class="overlay" id="successOverlay"><div class="modal" style="width:min(520px,100%)"><div class="success"><div style="font-size:60px">✅</div><h2>Pedido confirmado</h2><p>Tu pedido quedó guardado en Compra y Venta.</p><div class="ordercode" id="successCode"></div><button class="save" onclick="closeOverlay('successOverlay')">Volver</button></div></div></div>
 
-<div class="overlay" id="cartOverlay"><div class="modal" style="width:min(650px,100%)"><div class="modalhead"><h2>Carrito</h2><button class="close" onclick="closeCart()">×</button></div><div class="cartarea" id="cartArea"></div></div></div>
-
-<div class="overlay" id="checkoutOverlay"><div class="modal" style="width:min(600px,100%)"><div class="modalhead"><h2>Finalizar pedido</h2><button class="close" onclick="closeCheckout()">×</button></div><div class="checkout-form">
-<label>Nombre y apellido</label><input id="buyerName"><label>Teléfono</label><input id="buyerPhone"><label>Email</label><input id="buyerEmail" type="email"><label>Dirección / zona</label><input id="buyerAddress"><label>Notas</label><textarea id="buyerNotes"></textarea><button class="confirm" onclick="confirmOrder()">Confirmar pedido</button>
-</div></div></div>
-
-<div class="overlay" id="successOverlay"><div class="modal" style="width:min(520px,100%)"><div class="success"><div class="check">✅</div><h2>Pedido confirmado</h2><p>Tu pedido quedó guardado en Mercado Express.</p><div class="ordercode" id="successCode"></div><button class="save" onclick="closeSuccess()">Volver a la tienda</button></div></div></div>
+<div class="overlay" id="adminLoginOverlay"><div class="modal" style="width:min(430px,100%)"><div class="modalhead"><h2>Administrador</h2><button class="close" onclick="closeOverlay('adminLoginOverlay')">×</button></div><div class="formbox"><label>Usuario</label><input id="adminUser" value="admin"><label>Contraseña</label><input id="adminPass" type="password"><button class="save" onclick="adminLogin()">Ingresar</button></div></div></div>
+<div class="overlay" id="adminOverlay"><div class="modal"><div class="modalhead"><h2>Administración</h2><button class="close" onclick="closeOverlay('adminOverlay')">×</button></div><div class="admin"><div class="tabs"><button class="tab active" id="tabProducts" onclick="showAdminTab('products')">Productos</button><button class="tab" id="tabOrders" onclick="showAdminTab('orders')">Pedidos</button><button class="tab" onclick="adminLogout()">Cerrar sesión</button></div><div id="adminProducts"><div class="admin-grid"><div class="formbox" style="padding:0"><h3>Agregar/editar producto</h3><input type="hidden" id="editId"><label>Nombre</label><input id="admName"><label>Precio</label><input id="admPrice" type="number"><label>Categoría</label><select id="admCategory"><option value="ropa">Ropa</option><option value="tecnologia">Tecnología</option><option value="hogar">Hogar</option><option value="otros">Otros</option></select><label>Descripción</label><textarea id="admDesc"></textarea><label>Disponible</label><select id="admStock"><option value="1">Sí</option><option value="0">No</option></select><label>Foto</label><input id="admPhoto" type="file" accept="image/*"><button class="save" onclick="saveAdminProduct()">Guardar</button><button class="switchlink" onclick="resetAdminForm()">Nuevo</button></div><div id="adminList"></div></div></div><div id="adminOrders" style="display:none"><div id="ordersList" class="orders"></div></div></div></div></div>
 
 <script>
-let products=[], cart=[], currentCat="todos", editing=null;
-const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
-const emoji=c=>c==="ropa"?"👕":c==="modulos"?"📱":"🔌";
-const picture=p=>p.image?`<img src="${p.image}" alt="${p.name}">`:`<div class="emoji">${emoji(p.category)}</div>`;
+let products=[],cart=[],currentCat='todos',currentUser=null,editing=null;
+const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n);
+const emoji=c=>c==='ropa'?'👕':c==='tecnologia'?'📱':c==='hogar'?'🏠':'📦';
+const picture=p=>p.image?`<img src="${p.image}" alt="${esc(p.name)}">`:`<div class="emoji">${emoji(p.category)}</div>`;
+const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function show(id){document.getElementById(id).classList.add('show')} function closeOverlay(id){document.getElementById(id).classList.remove('show')}
 
-async function loadProducts(){products=await fetch("/api/products").then(r=>r.json());render();renderAdmin()}
-async function loadOrders(){
- const r=await fetch("/api/orders");
- if(r.status===401){return}
- const orders=await r.json();
- renderOrders(orders)
-}
-function updateCount(){document.getElementById("count").textContent=cart.reduce((s,x)=>s+x.qty,0)}
+async function loadProducts(){products=await fetch('/api/products').then(r=>r.json());render();renderAdmin()}
+async function authStatus(){const s=await fetch('/api/auth/status').then(r=>r.json());currentUser=s.logged_in?s.user:null;document.getElementById('accountBtn').textContent=currentUser?`👤 ${currentUser.name.split(' ')[0]}`:'👤 Ingresar'}
+function render(){const q=document.getElementById('search').value.toLowerCase().trim();const arr=products.filter(p=>(currentCat==='todos'||p.category===currentCat)&&(`${p.name} ${p.description||''}`).toLowerCase().includes(q));const g=document.getElementById('grid');g.innerHTML='';if(!arr.length){g.innerHTML='<div class="empty">No encontramos productos.</div>';return}arr.forEach(p=>{const e=document.createElement('article');e.className='card';e.innerHTML=`<div class="pic" onclick="openDetail(${p.id})">${picture(p)}</div><div class="body"><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div><div class="seller">Vende: ${esc(p.seller_name||'Compra y Venta')}</div><div class="${p.stock?'stock':'stock nostock'}">${p.stock?'✓ Disponible':'No disponible'}</div><div class="actions2"><button class="buy" ${p.stock?'':'disabled'} onclick="addCart(${p.id})">Agregar</button><button class="view" onclick="openDetail(${p.id})">Ver</button></div></div>`;g.appendChild(e)})}
+document.getElementById('search').oninput=render;document.querySelectorAll('.cat').forEach(b=>b.onclick=()=>{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentCat=b.dataset.cat;render()});
+function openDetail(id){const p=products.find(x=>x.id===id);document.getElementById('detailArea').innerHTML=`<div class="detail"><div class="detailimg" style="display:flex;align-items:center;justify-content:center;overflow:hidden">${picture(p)}</div><div><small>${esc(p.category).toUpperCase()}</small><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div><div class="seller">Vendedor: ${esc(p.seller_name||'Compra y Venta')}</div><p class="desc">${esc(p.description||'')}</p><button class="buy" ${p.stock?'':'disabled'} onclick="addCart(${p.id});closeOverlay('detailOverlay')">Agregar al carrito</button></div></div>`;show('detailOverlay')}
 
-function render(){
- const q=document.getElementById("search").value.toLowerCase().trim();
- const arr=products.filter(p=>(currentCat==="todos"||p.category===currentCat)&&p.name.toLowerCase().includes(q));
- const g=document.getElementById("grid");g.innerHTML="";
- if(!arr.length){g.innerHTML='<div class="empty">No encontramos productos.</div>';return}
- arr.forEach(p=>{let e=document.createElement("article");e.className="card";e.innerHTML=`<div class="pic" onclick="openDetail(${p.id})">${picture(p)}</div><div class="body"><h3>${p.name}</h3><div class="price">${money(p.price)}</div><div class="${p.stock?'stock':'stock nostock'}">${p.stock?'✓ En stock':'Sin stock'}</div><div class="actions2"><button class="buy" ${p.stock?'':'disabled'} onclick="addCart(${p.id})">${p.stock?'Agregar':'No disponible'}</button><button class="view" onclick="openDetail(${p.id})">Ver</button></div></div>`;g.appendChild(e)})
-}
-document.getElementById("search").oninput=render;
-document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active"));b.classList.add("active");currentCat=b.dataset.cat;render()});
+async function openAccount(){await authStatus();if(currentUser){document.getElementById('myUser').innerHTML=`<strong>${esc(currentUser.name)}</strong><br><span class="seller">${esc(currentUser.email)}</span>`;await loadMyProducts();show('myOverlay');return}renderLogin();show('accountOverlay')}
+function renderLogin(){document.getElementById('accountTitle').textContent='Ingresar';document.getElementById('accountBody').innerHTML=`<label>Email</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="save" onclick="loginUser()">Ingresar</button><button class="switchlink" onclick="renderRegister()">¿No tenés cuenta? Crear cuenta</button>`}
+function renderRegister(){document.getElementById('accountTitle').textContent='Crear cuenta';document.getElementById('accountBody').innerHTML=`<label>Nombre</label><input id="regName"><label>Email</label><input id="regEmail" type="email"><label>Contraseña</label><input id="regPassword" type="password"><button class="save" onclick="registerUser()">Crear cuenta</button><button class="switchlink" onclick="renderLogin()">Ya tengo cuenta</button>`}
+async function loginUser(){const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:loginEmail.value.trim(),password:loginPassword.value})});const d=await r.json();if(!r.ok){alert(d.error);return}closeOverlay('accountOverlay');await authStatus();openAccount()}
+async function registerUser(){const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:regName.value.trim(),email:regEmail.value.trim(),password:regPassword.value})});const d=await r.json();if(!r.ok){alert(d.error);return}closeOverlay('accountOverlay');await authStatus();openAccount()}
+async function logoutUser(){await fetch('/api/auth/logout',{method:'POST'});currentUser=null;closeOverlay('myOverlay');await authStatus()}
+async function openPublish(){await authStatus();if(!currentUser){alert('Para publicar primero tenés que crear una cuenta o iniciar sesión.');renderLogin();show('accountOverlay');return}show('publishOverlay')}
+async function publishProduct(){const fd=new FormData();fd.append('name',pubName.value.trim());fd.append('price',pubPrice.value);fd.append('category',pubCategory.value);fd.append('description',pubDesc.value.trim());fd.append('stock','1');if(pubPhoto.files[0])fd.append('image',pubPhoto.files[0]);const r=await fetch('/api/my/products',{method:'POST',body:fd});const d=await r.json();if(!r.ok){alert(d.error||'No se pudo publicar');return}['pubName','pubPrice','pubDesc','pubPhoto'].forEach(id=>document.getElementById(id).value='');closeOverlay('publishOverlay');await loadProducts();alert('Producto publicado.')}
+async function loadMyProducts(){const r=await fetch('/api/my/products');if(!r.ok)return;const arr=await r.json();document.getElementById('myProducts').innerHTML=arr.length?arr.map(p=>`<div class="myitem"><div><strong>${esc(p.name)}</strong><br>${money(p.price)}</div><button class="delete" onclick="deleteMy(${p.id})">Eliminar</button></div>`).join(''):'<div class="empty">Todavía no publicaste productos.</div>'}
+async function deleteMy(id){if(!confirm('¿Eliminar esta publicación?'))return;const r=await fetch(`/api/my/products/${id}`,{method:'DELETE'});if(!r.ok){alert('No se pudo eliminar');return}await loadMyProducts();await loadProducts()}
 
-function openDetail(id){const p=products.find(x=>x.id===id);const visual=p.image?`<img class="detailimg" src="${p.image}">`:`<div class="detailimg" style="display:flex;align-items:center;justify-content:center;font-size:120px">${emoji(p.category)}</div>`;document.getElementById("detailArea").innerHTML=`<div class="detail">${visual}<div><small>${p.category.toUpperCase()}</small><h3>${p.name}</h3><div class="price">${money(p.price)}</div><div class="${p.stock?'stock':'stock nostock'}">${p.stock?'✓ En stock':'Sin stock'}</div><p class="desc">${p.description||""}</p><button class="buy" style="margin-top:12px" ${p.stock?'':'disabled'} onclick="addCart(${p.id});closeDetail()">Agregar al carrito</button></div></div>`;document.getElementById("detailOverlay").classList.add("show")}
-function closeDetail(){document.getElementById("detailOverlay").classList.remove("show")}
+function updateCount(){document.getElementById('count').textContent=cart.reduce((s,x)=>s+x.qty,0)}function addCart(id){let x=cart.find(i=>i.id===id);if(x)x.qty++;else cart.push({id,qty:1});updateCount()}function changeQty(id,d){let x=cart.find(i=>i.id===id);if(!x)return;x.qty+=d;if(x.qty<=0)cart=cart.filter(i=>i.id!==id);updateCount();openCart()}function removeCart(id){cart=cart.filter(i=>i.id!==id);updateCount();openCart()}function cartTotal(){return cart.reduce((s,i)=>{let p=products.find(x=>x.id===i.id);return s+(p?p.price*i.qty:0)},0)}
+function openCart(){let a=document.getElementById('cartArea');if(!cart.length)a.innerHTML='<div class="empty">El carrito está vacío.</div>';else a.innerHTML=cart.map(i=>{let p=products.find(x=>x.id===i.id);return p?`<div class="cartrow"><div><strong>${esc(p.name)}</strong><br><small>${money(p.price)} c/u</small></div><div class="qtybox"><button class="qtybtn" onclick="changeQty(${p.id},-1)">−</button><strong>${i.qty}</strong><button class="qtybtn" onclick="changeQty(${p.id},1)">+</button></div><button class="remove" onclick="removeCart(${p.id})">Quitar</button></div>`:''}).join('')+`<div class="total">Total: ${money(cartTotal())}</div><button class="checkoutbtn" onclick="closeOverlay('cartOverlay');show('checkoutOverlay')">Finalizar compra</button>`;show('cartOverlay')}
+async function confirmOrder(){const customer={name:buyerName.value.trim(),phone:buyerPhone.value.trim(),email:buyerEmail.value.trim(),address:buyerAddress.value.trim(),notes:buyerNotes.value.trim()};if(!customer.name||!customer.phone||!customer.address){alert('Completá nombre, teléfono y dirección.');return}const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer,items:cart})});const d=await r.json();if(!r.ok){alert(d.error||'No se pudo crear el pedido');return}cart=[];updateCount();closeOverlay('checkoutOverlay');successCode.textContent=d.code;show('successOverlay')}
 
-function addCart(id){let x=cart.find(i=>i.id===id);if(x)x.qty++;else cart.push({id,qty:1});updateCount()}
-function changeQty(id,d){let x=cart.find(i=>i.id===id);if(!x)return;x.qty+=d;if(x.qty<=0)cart=cart.filter(i=>i.id!==id);updateCount();openCart()}
-function removeCart(id){cart=cart.filter(i=>i.id!==id);updateCount();openCart()}
-function cartTotal(){return cart.reduce((s,i)=>{let p=products.find(x=>x.id===i.id);return s+(p?p.price*i.qty:0)},0)}
-function openCart(){let a=document.getElementById("cartArea");if(!cart.length)a.innerHTML='<div class="empty">El carrito está vacío.</div>';else a.innerHTML=cart.map(i=>{let p=products.find(x=>x.id===i.id);if(!p)return"";return `<div class="cartrow"><div><strong>${p.name}</strong><br><small>${money(p.price)} c/u</small></div><div class="qtybox"><button class="qtybtn" onclick="changeQty(${p.id},-1)">−</button><strong>${i.qty}</strong><button class="qtybtn" onclick="changeQty(${p.id},1)">+</button></div><button class="remove" onclick="removeCart(${p.id})">Quitar</button></div>`}).join("")+`<div class="total">Total: ${money(cartTotal())}</div><button class="checkoutbtn" onclick="openCheckout()">Finalizar compra</button>`;document.getElementById("cartOverlay").classList.add("show")}
-function closeCart(){document.getElementById("cartOverlay").classList.remove("show")}
-function openCheckout(){if(!cart.length)return;closeCart();document.getElementById("checkoutOverlay").classList.add("show")}
-function closeCheckout(){document.getElementById("checkoutOverlay").classList.remove("show")}
+async function openAdmin(){const s=await fetch('/api/admin/status').then(r=>r.json());if(!s.logged_in){show('adminLoginOverlay');return}show('adminOverlay');showAdminTab('products');renderAdmin()}
+async function adminLogin(){const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:adminUser.value.trim(),password:adminPass.value})});const d=await r.json();if(!r.ok){alert(d.error);return}adminPass.value='';closeOverlay('adminLoginOverlay');openAdmin()}
+async function adminLogout(){await fetch('/api/admin/logout',{method:'POST'});closeOverlay('adminOverlay')}
+function showAdminTab(tab){const p=tab==='products';adminProducts.style.display=p?'block':'none';adminOrders.style.display=p?'none':'block';tabProducts.classList.toggle('active',p);tabOrders.classList.toggle('active',!p);if(!p)loadOrders()}
+function renderAdmin(){const list=document.getElementById('adminList');if(!list)return;list.innerHTML=products.map(p=>`<div class="admin-item"><div><strong>${esc(p.name)}</strong><br>${money(p.price)} · ${esc(p.seller_name||'Compra y Venta')}</div><div class="actions"><button class="edit" onclick="editAdmin(${p.id})">Editar</button><button class="delete" onclick="deleteAdmin(${p.id})">Eliminar</button></div></div>`).join('')}
+function resetAdminForm(){editing=null;['admName','admPrice','admDesc','admPhoto'].forEach(id=>document.getElementById(id).value='');admCategory.value='ropa';admStock.value='1'}
+function editAdmin(id){const p=products.find(x=>x.id===id);editing=id;admName.value=p.name;admPrice.value=p.price;admCategory.value=p.category;admDesc.value=p.description||'';admStock.value=String(p.stock)}
+async function saveAdminProduct(){const fd=new FormData();fd.append('name',admName.value.trim());fd.append('price',admPrice.value);fd.append('category',admCategory.value);fd.append('description',admDesc.value.trim());fd.append('stock',admStock.value);if(admPhoto.files[0])fd.append('image',admPhoto.files[0]);const r=await fetch(editing?`/api/products/${editing}`:'/api/products',{method:editing?'PUT':'POST',body:fd});const d=await r.json();if(!r.ok){alert(d.error||'Error');return}resetAdminForm();await loadProducts()}
+async function deleteAdmin(id){if(!confirm('¿Eliminar producto?'))return;await fetch(`/api/products/${id}`,{method:'DELETE'});await loadProducts()}
+async function loadOrders(){const r=await fetch('/api/orders');if(!r.ok)return;const arr=await r.json();ordersList.innerHTML=arr.length?arr.map(o=>`<div class="order"><div class="order-top"><div><strong>${esc(o.code)}</strong><br><small>${esc(o.customer_name)} · ${esc(o.customer_phone)}</small></div><select class="status" onchange="changeStatus(${o.id},this.value)">${['Pendiente','Preparando','Enviado','Entregado','Cancelado'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="order-products">${o.items.map(i=>`${esc(i.product_name)} × ${i.quantity} — ${money(i.price*i.quantity)}<br><small>Vendedor: ${esc(i.seller_name)} · Comisión: ${money(i.commission||0)}</small>`).join('<br>')}</div><strong>Total: ${money(o.total)}</strong></div>`).join(''):'<div class="empty">Todavía no hay pedidos.</div>'}
+async function changeStatus(id,status){await fetch(`/api/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})})}
 
-async function confirmOrder(){
- const customer={name:buyerName.value.trim(),phone:buyerPhone.value.trim(),email:buyerEmail.value.trim(),address:buyerAddress.value.trim(),notes:buyerNotes.value.trim()};
- if(!customer.name||!customer.phone||!customer.address){alert("Completá nombre, teléfono y dirección.");return}
- const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer,items:cart})});
- const data=await r.json();if(!r.ok){alert(data.error||"No se pudo crear el pedido");return}
- cart=[];updateCount();closeCheckout();document.getElementById("successCode").textContent=data.code;document.getElementById("successOverlay").classList.add("show");["buyerName","buyerPhone","buyerEmail","buyerAddress","buyerNotes"].forEach(id=>document.getElementById(id).value="");loadOrders()
-}
-function closeSuccess(){document.getElementById("successOverlay").classList.remove("show")}
-
-
-async function openAdmin(){
- const s=await fetch("/api/admin/status").then(r=>r.json());
- if(!s.logged_in){
-   document.getElementById("loginOverlay").classList.add("show");
-   return;
- }
- await openAdminPanel();
-}
-async function openAdminPanel(){
- renderAdmin();
- await loadOrders();
- showAdminTab("products");
- document.getElementById("adminOverlay").classList.add("show");
-}
-function closeLogin(){document.getElementById("loginOverlay").classList.remove("show")}
-async function loginAdmin(){
- const username=document.getElementById("loginUser").value.trim();
- const password=document.getElementById("loginPass").value;
- const r=await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
- const data=await r.json();
- if(!r.ok){alert(data.error||"No se pudo iniciar sesión");return}
- document.getElementById("loginPass").value="";
- closeLogin();
- await openAdminPanel();
-}
-async function logoutAdmin(){
- await fetch("/api/admin/logout",{method:"POST"});
- closeAdmin();
- alert("Sesión de administrador cerrada.");
-}
-
-function closeAdmin(){document.getElementById("adminOverlay").classList.remove("show")}
-function showAdminTab(tab){const prod=tab==="products";adminProducts.style.display=prod?"block":"none";adminOrders.style.display=prod?"none":"block";tabProducts.classList.toggle("active",prod);tabOrders.classList.toggle("active",!prod);if(!prod)loadOrders()}
-document.getElementById("adminBtn").onclick=openAdmin;
-
-function resetForm(){
- editing=null;
- document.getElementById("editId").value="";
- document.getElementById("formTitle").textContent="Agregar producto";
- document.getElementById("name").value="";
- document.getElementById("price").value="";
- document.getElementById("desc").value="";
- document.getElementById("category").value="ropa";
- document.getElementById("stock").value="1";
- document.getElementById("photo").value="";
- document.getElementById("preview").style.display="none";
-}
-
-async function saveProduct(){
- try{
-   const nameEl=document.getElementById("name");
-   const priceEl=document.getElementById("price");
-   const categoryEl=document.getElementById("category");
-   const descEl=document.getElementById("desc");
-   const stockEl=document.getElementById("stock");
-   const photoEl=document.getElementById("photo");
-
-   const productName=nameEl.value.trim();
-   const productPrice=priceEl.value;
-
-   if(!productName || !productPrice){
-     alert("Completá nombre y precio.");
-     return;
-   }
-
-   const fd=new FormData();
-   fd.append("name",productName);
-   fd.append("price",productPrice);
-   fd.append("category",categoryEl.value);
-   fd.append("description",descEl.value.trim());
-   fd.append("stock",stockEl.value);
-
-   if(photoEl.files && photoEl.files[0]){
-     fd.append("image",photoEl.files[0]);
-   }
-
-   const url=editing ? `/api/products/${editing}` : "/api/products";
-   const method=editing ? "PUT" : "POST";
-
-   const r=await fetch(url,{method,body:fd});
-   let data={};
-   try{ data=await r.json(); }catch(e){}
-
-   if(!r.ok){
-     alert(data.error || "No se pudo guardar el producto.");
-     return;
-   }
-
-   alert(editing ? "Producto actualizado." : "Producto guardado.");
-   resetForm();
-   await loadProducts();
- }catch(err){
-   console.error(err);
-   alert("Hubo un error al guardar el producto. Revisá la consola del navegador.");
- }
-}
-
-function editProduct(id){
- const p=products.find(x=>x.id===id);
- editing=id;
- document.getElementById("editId").value=id;
- document.getElementById("formTitle").textContent="Editar producto";
- document.getElementById("name").value=p.name;
- document.getElementById("price").value=p.price;
- document.getElementById("category").value=p.category;
- document.getElementById("desc").value=p.description||"";
- document.getElementById("stock").value=String(p.stock);
- const pr=document.getElementById("preview");
- pr.style.display=p.image?"block":"none";
- if(p.image) pr.src=p.image;
-}
-async function deleteProduct(id){if(!confirm("¿Eliminar este producto?"))return;await fetch(`/api/products/${id}`,{method:"DELETE"});cart=cart.filter(x=>x.id!==id);updateCount();await loadProducts()}
-function renderAdmin(){const list=document.getElementById("adminList");list.innerHTML="";products.forEach(p=>{let row=document.createElement("div");row.className="admin-item";row.innerHTML=`<div class="pic admin-thumb">${picture(p)}</div><div><strong>${p.name}</strong><div>${money(p.price)} · ${p.stock?'En stock':'Sin stock'}</div></div><div class="actions"><button class="edit" onclick="editProduct(${p.id})">Editar</button><button class="delete" onclick="deleteProduct(${p.id})">Eliminar</button></div>`;list.appendChild(row)})}
-
-function renderOrders(orders){const list=document.getElementById("ordersList");if(!orders.length){list.innerHTML='<div class="empty">Todavía no hay pedidos.</div>';return}list.innerHTML=orders.map(o=>`<div class="order"><div class="order-top"><div><h4>${o.code}</h4><small>${o.created_at}</small><p><strong>${o.customer_name}</strong><br>${o.customer_phone}<br>${o.customer_email||""}<br>${o.customer_address}</p></div><select class="status" onchange="changeStatus(${o.id},this.value)">${["Pendiente","Preparando","Enviado","Entregado","Cancelado"].map(s=>`<option ${o.status===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="order-products">${o.items.map(i=>`${i.product_name} × ${i.quantity} — ${money(i.price*i.quantity)}`).join("<br>")}</div>${o.notes?`<p><strong>Notas:</strong> ${o.notes}</p>`:""}<div class="order-total">Total: ${money(o.total)}</div></div>`).join("")}
-async function changeStatus(id,status){await fetch(`/api/orders/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});loadOrders()}
-
-document.getElementById("cartBtn").onclick=openCart;
-["detailOverlay","loginOverlay","adminOverlay","cartOverlay","checkoutOverlay","successOverlay"].forEach(id=>document.getElementById(id).onclick=e=>{if(e.target.id===id)e.target.classList.remove("show")});
-updateCount();loadProducts();
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show')}));
+(async()=>{await authStatus();await loadProducts();updateCount()})();
 </script>
 </body>
 </html>
