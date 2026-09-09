@@ -1,19 +1,14 @@
-MERCADO EXPRESS V9 - RENDER
-
 Build Command:
 pip install -r requirements.txt
 
 Start Command:
-gunicorn app:app --workers 1 --threads 4 --bind 0.0.0.0:$PORT
+gunicorn app:app
 
-Environment Variables to create in Render:
-ADMIN_USERNAME = admin
-ADMIN_PASSWORD = (ponerla manualmente en Render; NO subirla a GitHub)
-SECRET_KEY = (generar un valor secreto en Render)
-
-Optional later for persistent disk:
-DATA_DIR = /var/data
-
-IMPORTANT:
-Do not upload admin_config.json.
-The admin password is not stored in this repository.
+Environment Variables:
+ADMIN_PASSWORD=<tu clave admin>
+SECRET_KEY=<generada en Render>
+MP_ACCESS_TOKEN=<Access Token de prueba>
+MP_PUBLIC_KEY=<Public Key de prueba>
+MP_CLIENT_ID=<Client ID / App ID>
+MP_CLIENT_SECRET=<Client Secret>
+MP_REDIRECT_URI=https://mercado-express-5pcs.onrender.com/api/mp/oauth/callback

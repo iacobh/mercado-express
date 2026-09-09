@@ -1,16 +1,26 @@
-COMPRA Y VENTA - V10 MARKETPLACE
+COMPRA Y VENTA V11 - MERCADO PAGO (MODO PRUEBA)
 
 Esta versión agrega:
-- Nuevo nombre: Compra y Venta
-- Registro e inicio de sesión de usuarios
-- Cualquier usuario registrado puede publicar productos con foto
-- Cada producto queda asociado a su vendedor
-- El vendedor puede ver y eliminar sus publicaciones
-- Comisión del marketplace preparada al 10% en cada item de pedido
-- Panel administrador conservado
-- robots.txt y metadatos básicos para futura indexación en Google
+- Pago dentro del sitio con Mercado Pago Checkout API + Payment Brick.
+- Comisión de Compra y Venta del 10% para productos de vendedores.
+- Conexión de cada vendedor con Mercado Pago mediante OAuth.
+- El Access Token privado nunca se envía al navegador.
 
-IMPORTANTE:
-- El pago con tarjeta todavía NO está conectado. La comisión del 10% está preparada en la base de datos para la etapa de pagos.
-- Para Render mantené ADMIN_PASSWORD y SECRET_KEY como variables de entorno.
-- En Render Free, SQLite y las fotos pueden perderse al reiniciar/redeployar si no usás almacenamiento persistente. Para producción conviene PostgreSQL y almacenamiento de imágenes externo/persistente.
+VARIABLES DE RENDER
+Ya configuradas:
+- ADMIN_PASSWORD
+- MP_ACCESS_TOKEN = Access Token de prueba de la cuenta integradora
+- MP_PUBLIC_KEY = Public Key de prueba de la cuenta integradora
+
+Faltan para el flujo marketplace con vendedores:
+- MP_CLIENT_ID = Client ID / App ID de la aplicación Mercado Pago
+- MP_CLIENT_SECRET = Client Secret de la aplicación (NO subir a GitHub)
+- MP_REDIRECT_URI = https://mercado-express-5pcs.onrender.com/api/mp/oauth/callback
+
+En Mercado Pago Developers, la Redirect URL de la aplicación debe ser EXACTAMENTE la misma que MP_REDIRECT_URI.
+
+IMPORTANTE
+- Esta versión es para PRUEBAS. No uses tarjetas reales.
+- Para cobrar comisión a vendedores reales, cada vendedor debe conectar su cuenta de Mercado Pago desde "Mi cuenta".
+- Por ahora un pago solo puede incluir productos de UN vendedor. Si el carrito mezcla vendedores, la web pide separarlo.
+- Antes de pasar a producción conviene migrar SQLite a PostgreSQL, usar almacenamiento persistente para imágenes, cifrar tokens OAuth y configurar Webhooks de Mercado Pago.

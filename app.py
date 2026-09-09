@@ -4,6 +4,8 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import time, os, secrets, hmac
+import requests
+from urllib.parse import urlencode
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
@@ -20,6 +22,11 @@ app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 COMMISSION_RATE = 0.10
+MP_ACCESS_TOKEN = os.environ.get("MP_ACCESS_TOKEN", "")
+MP_PUBLIC_KEY = os.environ.get("MP_PUBLIC_KEY", "")
+MP_CLIENT_ID = os.environ.get("MP_CLIENT_ID", "")
+MP_CLIENT_SECRET = os.environ.get("MP_CLIENT_SECRET", "")
+MP_REDIRECT_URI = os.environ.get("MP_REDIRECT_URI", "")
 
 
 def db():
@@ -46,6 +53,16 @@ def init_db():
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    user_cols = _column_names(con, "users")
+    if "mp_access_token" not in user_cols:
+        cur.execute("ALTER TABLE users ADD COLUMN mp_access_token TEXT")
+    if "mp_refresh_token" not in user_cols:
+        cur.execute("ALTER TABLE users ADD COLUMN mp_refresh_token TEXT")
+    if "mp_user_id" not in user_cols:
+        cur.execute("ALTER TABLE users ADD COLUMN mp_user_id TEXT")
+    if "mp_connected_at" not in user_cols:
+        cur.execute("ALTER TABLE users ADD COLUMN mp_connected_at TEXT")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS products (
@@ -80,6 +97,14 @@ def init_db():
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    order_cols = _column_names(con, "orders")
+    if "payment_id" not in order_cols:
+        cur.execute("ALTER TABLE orders ADD COLUMN payment_id TEXT")
+    if "payment_status" not in order_cols:
+        cur.execute("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT ''")
+    if "marketplace_fee" not in order_cols:
+        cur.execute("ALTER TABLE orders ADD COLUMN marketplace_fee REAL NOT NULL DEFAULT 0")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS order_items (
@@ -177,7 +202,7 @@ def auth_status():
     if not uid:
         return jsonify({"logged_in": False})
     con = db()
-    u = con.execute("SELECT id,name,email FROM users WHERE id=?", (uid,)).fetchone()
+    u = con.execute("SELECT id,name,email, CASE WHEN mp_access_token IS NOT NULL AND mp_access_token != '' THEN 1 ELSE 0 END AS mp_connected FROM users WHERE id=?", (uid,)).fetchone()
     con.close()
     if not u:
         session.pop("user_id", None)
@@ -254,12 +279,225 @@ def admin_logout():
     return jsonify({"ok": True})
 
 
+# ---------- Mercado Pago / Marketplace ----------
+@app.get("/api/mp/config")
+def mp_config():
+    return jsonify({
+        "public_key": MP_PUBLIC_KEY,
+        "configured": bool(MP_PUBLIC_KEY and MP_ACCESS_TOKEN),
+        "oauth_configured": bool(MP_CLIENT_ID and MP_CLIENT_SECRET and MP_REDIRECT_URI),
+        "commission_rate": COMMISSION_RATE,
+    })
+
+
+@app.get("/api/mp/status")
+@user_required
+def mp_status():
+    con = db()
+    u = con.execute("SELECT mp_user_id, mp_connected_at, mp_access_token FROM users WHERE id=?", (session["user_id"],)).fetchone()
+    con.close()
+    return jsonify({
+        "connected": bool(u and u["mp_access_token"]),
+        "mp_user_id": u["mp_user_id"] if u else None,
+        "connected_at": u["mp_connected_at"] if u else None,
+        "oauth_configured": bool(MP_CLIENT_ID and MP_CLIENT_SECRET and MP_REDIRECT_URI),
+    })
+
+
+@app.get("/api/mp/oauth/start")
+@user_required
+def mp_oauth_start():
+    if not (MP_CLIENT_ID and MP_CLIENT_SECRET and MP_REDIRECT_URI):
+        return jsonify({"error": "Falta configurar MP_CLIENT_ID, MP_CLIENT_SECRET o MP_REDIRECT_URI en Render"}), 503
+    state = secrets.token_urlsafe(24)
+    session["mp_oauth_state"] = state
+    session["mp_oauth_user_id"] = session["user_id"]
+    params = {
+        "client_id": MP_CLIENT_ID,
+        "response_type": "code",
+        "platform_id": "mp",
+        "redirect_uri": MP_REDIRECT_URI,
+        "state": state,
+    }
+    return jsonify({"url": "https://auth.mercadopago.com.ar/authorization?" + urlencode(params)})
+
+
+@app.get("/api/mp/oauth/callback")
+def mp_oauth_callback():
+    code = request.args.get("code", "")
+    state = request.args.get("state", "")
+    expected_state = session.get("mp_oauth_state", "")
+    uid = session.get("mp_oauth_user_id")
+    if not code or not state or not expected_state or not hmac.compare_digest(state, expected_state) or not uid:
+        return "Autorización inválida o vencida. Volvé a Compra y Venta e intentá de nuevo.", 400
+    if not (MP_CLIENT_ID and MP_CLIENT_SECRET and MP_REDIRECT_URI):
+        return "Falta configurar OAuth de Mercado Pago en el servidor.", 503
+    try:
+        r = requests.post(
+            "https://api.mercadopago.com/oauth/token",
+            headers={"accept": "application/json", "content-type": "application/x-www-form-urlencoded"},
+            data={
+                "grant_type": "authorization_code",
+                "client_id": MP_CLIENT_ID,
+                "client_secret": MP_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": MP_REDIRECT_URI,
+            },
+            timeout=20,
+        )
+        data = r.json()
+    except Exception:
+        return "No pudimos comunicarnos con Mercado Pago. Intentá nuevamente.", 502
+    if not r.ok or not data.get("access_token"):
+        return f"Mercado Pago rechazó la autorización. Código {r.status_code}.", 400
+    con = db()
+    con.execute("""
+        UPDATE users SET mp_access_token=?, mp_refresh_token=?, mp_user_id=?, mp_connected_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    """, (data.get("access_token"), data.get("refresh_token", ""), str(data.get("user_id", "")), uid))
+    con.commit(); con.close()
+    session.pop("mp_oauth_state", None); session.pop("mp_oauth_user_id", None)
+    return """<!doctype html><html lang="es"><meta charset="utf-8"><title>Mercado Pago conectado</title>
+    <body style="font-family:Arial;padding:40px;text-align:center"><h1>Mercado Pago conectado</h1>
+    <p>Ya podés volver a Compra y Venta.</p><a href="/">Volver al marketplace</a></body></html>"""
+
+
+@app.post("/api/mp/disconnect")
+@user_required
+def mp_disconnect():
+    con = db()
+    con.execute("UPDATE users SET mp_access_token=NULL,mp_refresh_token=NULL,mp_user_id=NULL,mp_connected_at=NULL WHERE id=?", (session["user_id"],))
+    con.commit(); con.close()
+    return jsonify({"ok": True})
+
+
+def build_cart(items):
+    con = db(); cur = con.cursor()
+    total = 0.0; final_items = []; seller_ids = set()
+    for item in items:
+        try:
+            pid = int(item["id"]); qty = max(1, int(item["qty"]))
+        except Exception:
+            continue
+        p = cur.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
+        if not p or not p["stock"]:
+            continue
+        subtotal = round(float(p["price"]) * qty, 2)
+        total += subtotal
+        seller_ids.add(p["seller_id"])
+        final_items.append((p, qty, subtotal))
+    if not final_items:
+        con.close(); return None, "No hay productos disponibles en el pedido"
+    if len(seller_ids) > 1:
+        con.close(); return None, "Por ahora cada pago puede incluir productos de un solo vendedor. Separá la compra en dos pedidos."
+    seller_id = next(iter(seller_ids))
+    seller_token = MP_ACCESS_TOKEN
+    seller_name = "Compra y Venta"
+    if seller_id is not None:
+        seller = cur.execute("SELECT name,mp_access_token FROM users WHERE id=?", (seller_id,)).fetchone()
+        if not seller or not seller["mp_access_token"]:
+            con.close(); return None, "Este vendedor todavía no conectó su cuenta de Mercado Pago."
+        seller_token = seller["mp_access_token"]
+        seller_name = seller["name"]
+    con.close()
+    return {
+        "total": round(total, 2), "items": final_items, "seller_id": seller_id,
+        "seller_token": seller_token, "seller_name": seller_name,
+        "fee": round(total * COMMISSION_RATE, 2) if seller_id is not None else 0,
+    }, None
+
+
+@app.post("/api/mp/pay")
+def mp_pay():
+    data = request.get_json(force=True)
+    customer = data.get("customer", {})
+    items = data.get("items", [])
+    form_data = data.get("payment", {}) or {}
+    name = str(customer.get("name", "")).strip()
+    phone = str(customer.get("phone", "")).strip()
+    email = str(customer.get("email", "")).strip()
+    address = str(customer.get("address", "")).strip()
+    notes = str(customer.get("notes", "")).strip()
+    if not name or not phone or not email or not address:
+        return jsonify({"error": "Completá nombre, teléfono, email y dirección"}), 400
+    cart_data, error = build_cart(items)
+    if error:
+        return jsonify({"error": error}), 400
+    if not cart_data["seller_token"]:
+        return jsonify({"error": "Mercado Pago todavía no está configurado en el servidor"}), 503
+
+    code = f"CV-{str(int(time.time()*1000))[-8:]}"
+    payer = form_data.get("payer") or {}
+    payer["email"] = email
+    payload = {
+        "transaction_amount": cart_data["total"],
+        "token": form_data.get("token"),
+        "description": f"Compra y Venta - {cart_data['seller_name']}",
+        "installments": int(form_data.get("installments") or 1),
+        "payment_method_id": form_data.get("payment_method_id"),
+        "issuer_id": form_data.get("issuer_id"),
+        "payer": payer,
+        "external_reference": code,
+        "application_fee": cart_data["fee"],
+    }
+    payload = {k: v for k, v in payload.items() if v not in (None, "")}
+    if not payload.get("token") or not payload.get("payment_method_id"):
+        return jsonify({"error": "Faltan los datos tokenizados de la tarjeta"}), 400
+
+    try:
+        r = requests.post(
+            "https://api.mercadopago.com/v1/payments",
+            headers={
+                "Authorization": f"Bearer {cart_data['seller_token']}",
+                "Content-Type": "application/json",
+                "X-Idempotency-Key": secrets.token_hex(16),
+            },
+            json=payload,
+            timeout=25,
+        )
+        mp_data = r.json()
+    except Exception:
+        return jsonify({"error": "No pudimos comunicarnos con Mercado Pago"}), 502
+
+    if not r.ok:
+        msg = mp_data.get("message") or "Mercado Pago rechazó el pago"
+        cause = mp_data.get("cause") or []
+        if cause and isinstance(cause, list) and isinstance(cause[0], dict):
+            msg = cause[0].get("description") or cause[0].get("code") or msg
+        return jsonify({"error": str(msg), "mp_status": r.status_code}), 400
+
+    payment_id = str(mp_data.get("id", ""))
+    payment_status = str(mp_data.get("status", ""))
+    con = db(); cur = con.cursor()
+    cur.execute("""
+        INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status,payment_id,payment_status,marketplace_fee)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)
+    """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if payment_status == "approved" else "Pendiente", payment_id, payment_status, cart_data["fee"]))
+    order_id = cur.lastrowid
+    rows = []
+    for p, qty, subtotal in cart_data["items"]:
+        commission = round(subtotal * COMMISSION_RATE, 2) if p["seller_id"] is not None else 0
+        seller_net = round(subtotal - commission, 2) if p["seller_id"] is not None else subtotal
+        rows.append((order_id, p["id"], p["name"], float(p["price"]), qty, p["seller_id"], commission, seller_net))
+    cur.executemany("""
+        INSERT INTO order_items(order_id,product_id,product_name,price,quantity,seller_id,commission,seller_net)
+        VALUES(?,?,?,?,?,?,?,?)
+    """, rows)
+    con.commit(); con.close()
+    return jsonify({
+        "ok": True, "code": code, "payment_id": payment_id,
+        "status": payment_status, "status_detail": mp_data.get("status_detail", ""),
+        "total": cart_data["total"], "marketplace_fee": cart_data["fee"],
+    }), 201
+
+
 # ---------- Productos ----------
 @app.get("/api/products")
 def get_products():
     con = db()
     rows = con.execute("""
-        SELECT p.*, COALESCE(u.name,'Compra y Venta') AS seller_name
+        SELECT p.*, COALESCE(u.name,'Compra y Venta') AS seller_name,
+               CASE WHEN p.seller_id IS NULL OR (u.mp_access_token IS NOT NULL AND u.mp_access_token != '') THEN 1 ELSE 0 END AS seller_mp_connected
         FROM products p LEFT JOIN users u ON u.id=p.seller_id
         ORDER BY p.id DESC
     """).fetchall()
