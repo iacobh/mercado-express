@@ -413,6 +413,7 @@ def mp_pay():
     customer = data.get("customer", {})
     items = data.get("items", [])
     form_data = data.get("payment", {}) or {}
+    selected_payment_method = str(data.get("selected_payment_method", "") or "").strip()
     name = str(customer.get("name", "")).strip()
     phone = str(customer.get("phone", "")).strip()
     email = str(customer.get("email", "")).strip()
@@ -420,66 +421,123 @@ def mp_pay():
     notes = str(customer.get("notes", "")).strip()
     if not name or not phone or not email or not address:
         return jsonify({"error": "Completá nombre, teléfono, email y dirección"}), 400
+
     cart_data, error = build_cart(items)
     if error:
         return jsonify({"error": error}), 400
     if not cart_data["seller_token"]:
         return jsonify({"error": "Mercado Pago todavía no está configurado en el servidor"}), 503
 
-    code = f"CV-{str(int(time.time()*1000))[-8:]}"
-    payer = form_data.get("payer") or {}
-    payer["email"] = email
-    payload = {
-        "transaction_amount": cart_data["total"],
-        "token": form_data.get("token"),
-        "description": f"Compra y Venta - {cart_data['seller_name']}",
-        "installments": int(form_data.get("installments") or 1),
-        "payment_method_id": form_data.get("payment_method_id"),
-        "issuer_id": form_data.get("issuer_id"),
-        "payer": payer,
-        "external_reference": code,
-    }
-    # application_fee solo corresponde cuando el pago pertenece a un vendedor
-    # conectado por OAuth. En productos propios / de prueba, enviarlo en 0 puede
-    # provocar un 400 de Mercado Pago.
-    if cart_data["seller_id"] is not None and cart_data["fee"] > 0:
-        payload["application_fee"] = cart_data["fee"]
-    payload = {k: v for k, v in payload.items() if v not in (None, "")}
-    if not payload.get("token") or not payload.get("payment_method_id"):
+    token = form_data.get("token")
+    payment_method_id = form_data.get("payment_method_id")
+    installments = int(form_data.get("installments") or 1)
+    if not token or not payment_method_id:
         return jsonify({"error": "Faltan los datos tokenizados de la tarjeta"}), 400
 
+    code = f"CV-{str(int(time.time()*1000))[-8:]}"
+
+    # La aplicación fue creada como Checkout API vía Orders. Para productos propios
+    # usamos la API /v1/orders (recomendada por Mercado Pago para esta integración).
+    # Para sellers conectados por OAuth conservamos /v1/payments porque el Split 1:1
+    # documenta application_fee en esa API.
     try:
-        r = requests.post(
-            "https://api.mercadopago.com/v1/payments",
-            headers={
-                "Authorization": f"Bearer {cart_data['seller_token']}",
-                "Content-Type": "application/json",
-                "X-Idempotency-Key": secrets.token_hex(16),
-            },
-            json=payload,
-            timeout=25,
-        )
-        mp_data = r.json()
-    except Exception:
-        return jsonify({"error": "No pudimos comunicarnos con Mercado Pago"}), 502
+        if cart_data["seller_id"] is None:
+            pm_type = selected_payment_method
+            if pm_type not in {"credit_card", "debit_card"}:
+                # Payment Brick puede no entregar el tipo en algunas versiones.
+                # Para la prueba actual con tarjeta, credit_card es el caso esperado.
+                pm_type = "credit_card"
 
-    if not r.ok:
-        msg = mp_data.get("message") or "Mercado Pago rechazó el pago"
-        cause = mp_data.get("cause") or []
-        cause_code = ""
-        if cause and isinstance(cause, list) and isinstance(cause[0], dict):
-            cause_code = str(cause[0].get("code") or "")
-            msg = cause[0].get("description") or cause_code or msg
-        # No devolvemos tokens ni datos de tarjeta; solo el motivo de MP.
-        return jsonify({"error": str(msg), "mp_status": r.status_code, "mp_code": cause_code}), 400
+            amount = f"{cart_data['total']:.2f}"
+            payload = {
+                "type": "online",
+                "processing_mode": "automatic",
+                "total_amount": amount,
+                "external_reference": code,
+                "payer": {"email": email},
+                "transactions": {
+                    "payments": [{
+                        "amount": amount,
+                        "payment_method": {
+                            "id": payment_method_id,
+                            "type": pm_type,
+                            "token": token,
+                            "installments": installments,
+                        }
+                    }]
+                }
+            }
+            r = requests.post(
+                "https://api.mercadopago.com/v1/orders",
+                headers={
+                    "Authorization": f"Bearer {cart_data['seller_token']}",
+                    "Content-Type": "application/json",
+                    "X-Idempotency-Key": secrets.token_hex(16),
+                },
+                json=payload,
+                timeout=25,
+            )
+            mp_data = r.json()
+            if not r.ok:
+                details = mp_data.get("errors") or mp_data.get("cause") or mp_data.get("message") or mp_data
+                return jsonify({
+                    "error": "Mercado Pago rechazó la orden",
+                    "mp_status": r.status_code,
+                    "mp_detail": str(details)[:700],
+                }), 400
 
-    payment_id = str(mp_data.get("id", ""))
-    payment_status = str(mp_data.get("status", ""))
+            order_mp_id = str(mp_data.get("id", ""))
+            payment_status = str(mp_data.get("status", ""))
+            status_detail = str(mp_data.get("status_detail", ""))
+            payments = ((mp_data.get("transactions") or {}).get("payments") or [])
+            payment_id = str(payments[0].get("id", "")) if payments and isinstance(payments[0], dict) else order_mp_id
+            approved = payment_status == "processed" and status_detail == "accredited"
+        else:
+            payer = form_data.get("payer") or {}
+            payer["email"] = email
+            payload = {
+                "transaction_amount": cart_data["total"],
+                "token": token,
+                "description": f"Compra y Venta - {cart_data['seller_name']}",
+                "installments": installments,
+                "payment_method_id": payment_method_id,
+                "issuer_id": form_data.get("issuer_id"),
+                "payer": payer,
+                "external_reference": code,
+                "application_fee": cart_data["fee"],
+            }
+            payload = {k: v for k, v in payload.items() if v not in (None, "")}
+            r = requests.post(
+                "https://api.mercadopago.com/v1/payments",
+                headers={
+                    "Authorization": f"Bearer {cart_data['seller_token']}",
+                    "Content-Type": "application/json",
+                    "X-Idempotency-Key": secrets.token_hex(16),
+                },
+                json=payload,
+                timeout=25,
+            )
+            mp_data = r.json()
+            if not r.ok:
+                details = mp_data.get("cause") or mp_data.get("message") or mp_data
+                return jsonify({
+                    "error": "Mercado Pago rechazó el pago del vendedor",
+                    "mp_status": r.status_code,
+                    "mp_detail": str(details)[:700],
+                }), 400
+            payment_id = str(mp_data.get("id", ""))
+            payment_status = str(mp_data.get("status", ""))
+            status_detail = str(mp_data.get("status_detail", ""))
+            approved = payment_status == "approved"
+
+    except Exception as exc:
+        return jsonify({"error": "No pudimos comunicarnos con Mercado Pago", "detail": str(exc)[:250]}), 502
+
     con = db(); cur = con.cursor()
     cur.execute("""
         INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status,payment_id,payment_status,marketplace_fee)
         VALUES(?,?,?,?,?,?,?,?,?,?,?)
-    """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if payment_status == "approved" else "Pendiente", payment_id, payment_status, cart_data["fee"]))
+    """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if approved else "Pendiente", payment_id, f"{payment_status}:{status_detail}", cart_data["fee"]))
     order_id = cur.lastrowid
     rows = []
     for p, qty, subtotal in cart_data["items"]:
@@ -491,10 +549,15 @@ def mp_pay():
         VALUES(?,?,?,?,?,?,?,?)
     """, rows)
     con.commit(); con.close()
+
     return jsonify({
-        "ok": True, "code": code, "payment_id": payment_id,
-        "status": payment_status, "status_detail": mp_data.get("status_detail", ""),
-        "total": cart_data["total"], "marketplace_fee": cart_data["fee"],
+        "ok": True,
+        "code": code,
+        "payment_id": payment_id,
+        "status": "approved" if approved else payment_status,
+        "status_detail": status_detail,
+        "total": cart_data["total"],
+        "marketplace_fee": cart_data["fee"],
     }), 201
 
 
