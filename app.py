@@ -438,8 +438,12 @@ def mp_pay():
         "issuer_id": form_data.get("issuer_id"),
         "payer": payer,
         "external_reference": code,
-        "application_fee": cart_data["fee"],
     }
+    # application_fee solo corresponde cuando el pago pertenece a un vendedor
+    # conectado por OAuth. En productos propios / de prueba, enviarlo en 0 puede
+    # provocar un 400 de Mercado Pago.
+    if cart_data["seller_id"] is not None and cart_data["fee"] > 0:
+        payload["application_fee"] = cart_data["fee"]
     payload = {k: v for k, v in payload.items() if v not in (None, "")}
     if not payload.get("token") or not payload.get("payment_method_id"):
         return jsonify({"error": "Faltan los datos tokenizados de la tarjeta"}), 400
@@ -462,9 +466,12 @@ def mp_pay():
     if not r.ok:
         msg = mp_data.get("message") or "Mercado Pago rechazó el pago"
         cause = mp_data.get("cause") or []
+        cause_code = ""
         if cause and isinstance(cause, list) and isinstance(cause[0], dict):
-            msg = cause[0].get("description") or cause[0].get("code") or msg
-        return jsonify({"error": str(msg), "mp_status": r.status_code}), 400
+            cause_code = str(cause[0].get("code") or "")
+            msg = cause[0].get("description") or cause_code or msg
+        # No devolvemos tokens ni datos de tarjeta; solo el motivo de MP.
+        return jsonify({"error": str(msg), "mp_status": r.status_code, "mp_code": cause_code}), 400
 
     payment_id = str(mp_data.get("id", ""))
     payment_status = str(mp_data.get("status", ""))
