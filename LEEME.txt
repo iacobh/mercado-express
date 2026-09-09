@@ -1,49 +1,16 @@
-MERCADO EXPRESS V8 - BASE DE DATOS
+COMPRA Y VENTA - V10 MARKETPLACE
 
-Esta versión ya usa una base de datos SQLite real.
+Esta versión agrega:
+- Nuevo nombre: Compra y Venta
+- Registro e inicio de sesión de usuarios
+- Cualquier usuario registrado puede publicar productos con foto
+- Cada producto queda asociado a su vendedor
+- El vendedor puede ver y eliminar sus publicaciones
+- Comisión del marketplace preparada al 10% en cada item de pedido
+- Panel administrador conservado
+- robots.txt y metadatos básicos para futura indexación en Google
 
-COMO INICIAR EN WINDOWS
-1. Descomprimí esta carpeta.
-2. Hacé doble clic en: INICIAR_MERCADO_EXPRESS.bat
-3. La primera vez puede instalar Flask.
-4. Se abrirá en:
-   http://127.0.0.1:5000
-
-IMPORTANTE
-- Ya no abras index.html directamente.
-- Los productos y pedidos quedan guardados en:
-  mercado_express.db
-- Las fotos quedan guardadas en:
-  static/uploads/
-- Si cerrás la ventana negra del servidor, la página deja de funcionar hasta volver a iniciar.
-
-LO QUE YA FUNCIONA
-- Productos guardados en base de datos.
-- Agregar/editar/eliminar productos.
-- Subir fotos.
-- Carrito.
-- Crear pedidos.
-- Ver pedidos desde Administrar.
-- Cambiar estado del pedido.
-
-SIGUIENTE ETAPA
-- Usuario/contraseña para administrador.
-- Publicación en Internet.
-- Base de datos online.
-- Mercado Pago.
-
-CORRECCION V7
-- Corregido el botón Guardar producto.
-- El formulario ahora usa referencias explícitas a los campos y muestra confirmación al guardar.
-
-V8 - SEGURIDAD DEL ADMINISTRADOR
-- Usuario: admin
-- La contraseña se guarda con hash PBKDF2, no en texto plano.
-- El panel y las rutas de administración requieren inicio de sesión.
-- Los clientes pueden ver productos y crear pedidos sin iniciar sesión.
-
-V9 - PREPARADA PARA GITHUB + RENDER
-- No contiene la contraseña del administrador.
-- La contraseña se configura de forma privada en Render.
-- Incluye Gunicorn para producción.
-- Está preparada para usar DATA_DIR con un disco persistente más adelante.
+IMPORTANTE:
+- El pago con tarjeta todavía NO está conectado. La comisión del 10% está preparada en la base de datos para la etapa de pagos.
+- Para Render mantené ADMIN_PASSWORD y SECRET_KEY como variables de entorno.
+- En Render Free, SQLite y las fotos pueden perderse al reiniciar/redeployar si no usás almacenamiento persistente. Para producción conviene PostgreSQL y almacenamiento de imágenes externo/persistente.

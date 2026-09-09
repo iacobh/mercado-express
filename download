@@ -1,0 +1,7 @@
+admin_config.json
+mercado_express.db
+*.db
+__pycache__/
+*.pyc
+.env
+uploads/
