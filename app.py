@@ -1,5 +1,11 @@
 from flask import Flask, render_template, request, jsonify, session, send_from_directory
 import sqlite3
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:
+    psycopg2 = None
+    RealDictCursor = None
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -12,6 +18,8 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DB_PATH = DATA_DIR / "compra_y_venta.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+USE_POSTGRES = bool(DATABASE_URL)
 UPLOAD_FOLDER = DATA_DIR / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
@@ -29,7 +37,62 @@ MP_CLIENT_SECRET = os.environ.get("MP_CLIENT_SECRET", "")
 MP_REDIRECT_URI = os.environ.get("MP_REDIRECT_URI", "")
 
 
+class _PostgresCursor:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    @staticmethod
+    def _sql(sql):
+        # El resto de la app usa placeholders estilo SQLite (?).
+        # PostgreSQL usa %s, así que los traducimos aquí.
+        return sql.replace(" COLLATE NOCASE", "").replace("?", "%s")
+
+    def execute(self, sql, params=None):
+        self._cursor.execute(self._sql(sql), params or ())
+        return self
+
+    def executemany(self, sql, seq):
+        self._cursor.executemany(self._sql(sql), seq)
+        return self
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    @property
+    def lastrowid(self):
+        return None
+
+
+class _PostgresConnection:
+    def __init__(self, raw):
+        self._raw = raw
+
+    def cursor(self):
+        return _PostgresCursor(self._raw.cursor(cursor_factory=RealDictCursor))
+
+    def execute(self, sql, params=None):
+        return self.cursor().execute(sql, params)
+
+    def commit(self):
+        self._raw.commit()
+
+    def rollback(self):
+        self._raw.rollback()
+
+    def close(self):
+        self._raw.close()
+
+
 def db():
+    if USE_POSTGRES:
+        if psycopg2 is None:
+            raise RuntimeError("Falta instalar psycopg2-binary para usar DATABASE_URL")
+        raw = psycopg2.connect(DATABASE_URL, sslmode="require")
+        return _PostgresConnection(raw)
+
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
@@ -37,6 +100,13 @@ def db():
 
 
 def _column_names(con, table):
+    if USE_POSTGRES:
+        rows = con.execute("""
+            SELECT column_name AS name
+            FROM information_schema.columns
+            WHERE table_schema='public' AND table_name=?
+        """, (table,)).fetchall()
+        return {r["name"] for r in rows}
     return {r["name"] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
@@ -44,15 +114,115 @@ def init_db():
     con = db()
     cur = con.cursor()
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-        password_hash TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    if USE_POSTGRES:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            price DOUBLE PRECISION NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            stock INTEGER NOT NULL DEFAULT 1,
+            image TEXT DEFAULT '',
+            seller_id INTEGER REFERENCES users(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL UNIQUE,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT NOT NULL,
+            customer_email TEXT DEFAULT '',
+            customer_address TEXT NOT NULL,
+            notes TEXT DEFAULT '',
+            total DOUBLE PRECISION NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pendiente',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS order_items (
+            id SERIAL PRIMARY KEY,
+            order_id INTEGER NOT NULL REFERENCES orders(id),
+            product_id INTEGER,
+            product_name TEXT NOT NULL,
+            price DOUBLE PRECISION NOT NULL,
+            quantity INTEGER NOT NULL,
+            seller_id INTEGER REFERENCES users(id),
+            commission DOUBLE PRECISION NOT NULL DEFAULT 0,
+            seller_net DOUBLE PRECISION NOT NULL DEFAULT 0
+        )
+        """)
+    else:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            stock INTEGER NOT NULL DEFAULT 1,
+            image TEXT DEFAULT '',
+            seller_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(seller_id) REFERENCES users(id)
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL UNIQUE,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT NOT NULL,
+            customer_email TEXT DEFAULT '',
+            customer_address TEXT NOT NULL,
+            notes TEXT DEFAULT '',
+            total REAL NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pendiente',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            product_id INTEGER,
+            product_name TEXT NOT NULL,
+            price REAL NOT NULL,
+            quantity INTEGER NOT NULL,
+            seller_id INTEGER,
+            commission REAL NOT NULL DEFAULT 0,
+            seller_net REAL NOT NULL DEFAULT 0,
+            FOREIGN KEY(order_id) REFERENCES orders(id),
+            FOREIGN KEY(seller_id) REFERENCES users(id)
+        )
+        """)
 
     user_cols = _column_names(con, "users")
     if "mp_access_token" not in user_cols:
@@ -62,41 +232,10 @@ def init_db():
     if "mp_user_id" not in user_cols:
         cur.execute("ALTER TABLE users ADD COLUMN mp_user_id TEXT")
     if "mp_connected_at" not in user_cols:
-        cur.execute("ALTER TABLE users ADD COLUMN mp_connected_at TEXT")
+        cur.execute("ALTER TABLE users ADD COLUMN mp_connected_at TIMESTAMP" if USE_POSTGRES else "ALTER TABLE users ADD COLUMN mp_connected_at TEXT")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        price REAL NOT NULL,
-        category TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        stock INTEGER NOT NULL DEFAULT 1,
-        image TEXT DEFAULT '',
-        seller_id INTEGER,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(seller_id) REFERENCES users(id)
-    )
-    """)
-
-    # Migración suave si se usa una base de una versión anterior.
     if "seller_id" not in _column_names(con, "products"):
         cur.execute("ALTER TABLE products ADD COLUMN seller_id INTEGER")
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        customer_name TEXT NOT NULL,
-        customer_phone TEXT NOT NULL,
-        customer_email TEXT DEFAULT '',
-        customer_address TEXT NOT NULL,
-        notes TEXT DEFAULT '',
-        total REAL NOT NULL,
-        status TEXT NOT NULL DEFAULT 'Pendiente',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
 
     order_cols = _column_names(con, "orders")
     if "payment_id" not in order_cols:
@@ -104,31 +243,15 @@ def init_db():
     if "payment_status" not in order_cols:
         cur.execute("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT ''")
     if "marketplace_fee" not in order_cols:
-        cur.execute("ALTER TABLE orders ADD COLUMN marketplace_fee REAL NOT NULL DEFAULT 0")
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS order_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id INTEGER NOT NULL,
-        product_id INTEGER,
-        product_name TEXT NOT NULL,
-        price REAL NOT NULL,
-        quantity INTEGER NOT NULL,
-        seller_id INTEGER,
-        commission REAL NOT NULL DEFAULT 0,
-        seller_net REAL NOT NULL DEFAULT 0,
-        FOREIGN KEY(order_id) REFERENCES orders(id),
-        FOREIGN KEY(seller_id) REFERENCES users(id)
-    )
-    """)
+        cur.execute("ALTER TABLE orders ADD COLUMN marketplace_fee DOUBLE PRECISION NOT NULL DEFAULT 0" if USE_POSTGRES else "ALTER TABLE orders ADD COLUMN marketplace_fee REAL NOT NULL DEFAULT 0")
 
     cols = _column_names(con, "order_items")
     if "seller_id" not in cols:
         cur.execute("ALTER TABLE order_items ADD COLUMN seller_id INTEGER")
     if "commission" not in cols:
-        cur.execute("ALTER TABLE order_items ADD COLUMN commission REAL NOT NULL DEFAULT 0")
+        cur.execute("ALTER TABLE order_items ADD COLUMN commission DOUBLE PRECISION NOT NULL DEFAULT 0" if USE_POSTGRES else "ALTER TABLE order_items ADD COLUMN commission REAL NOT NULL DEFAULT 0")
     if "seller_net" not in cols:
-        cur.execute("ALTER TABLE order_items ADD COLUMN seller_net REAL NOT NULL DEFAULT 0")
+        cur.execute("ALTER TABLE order_items ADD COLUMN seller_net DOUBLE PRECISION NOT NULL DEFAULT 0" if USE_POSTGRES else "ALTER TABLE order_items ADD COLUMN seller_net REAL NOT NULL DEFAULT 0")
 
     count = cur.execute("SELECT COUNT(*) c FROM products").fetchone()["c"]
     if count == 0:
@@ -144,6 +267,7 @@ def init_db():
 
     con.commit()
     con.close()
+
 
 
 init_db()
@@ -225,11 +349,16 @@ def register():
     con = db()
     try:
         cur = con.cursor()
-        cur.execute("INSERT INTO users(name,email,password_hash) VALUES(?,?,?)",
-                    (name, email, generate_password_hash(password)))
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO users(name,email,password_hash) VALUES(?,?,?) RETURNING id",
+                        (name, email, generate_password_hash(password)))
+            session["user_id"] = cur.fetchone()["id"]
+        else:
+            cur.execute("INSERT INTO users(name,email,password_hash) VALUES(?,?,?)",
+                        (name, email, generate_password_hash(password)))
+            session["user_id"] = cur.lastrowid
         con.commit()
-        session["user_id"] = cur.lastrowid
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, psycopg2.IntegrityError if psycopg2 else sqlite3.IntegrityError):
         con.close()
         return jsonify({"error": "Ese email ya está registrado"}), 409
     con.close()
@@ -534,11 +663,18 @@ def mp_pay():
         return jsonify({"error": "No pudimos comunicarnos con Mercado Pago", "detail": str(exc)[:250]}), 502
 
     con = db(); cur = con.cursor()
-    cur.execute("""
-        INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status,payment_id,payment_status,marketplace_fee)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?)
-    """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if approved else "Pendiente", payment_id, f"{payment_status}:{status_detail}", cart_data["fee"]))
-    order_id = cur.lastrowid
+    if USE_POSTGRES:
+        cur.execute("""
+            INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status,payment_id,payment_status,marketplace_fee)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING id
+        """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if approved else "Pendiente", payment_id, f"{payment_status}:{status_detail}", cart_data["fee"]))
+        order_id = cur.fetchone()["id"]
+    else:
+        cur.execute("""
+            INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status,payment_id,payment_status,marketplace_fee)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        """, (code, name, phone, email, address, notes, cart_data["total"], "Pagado" if approved else "Pendiente", payment_id, f"{payment_status}:{status_detail}", cart_data["fee"]))
+        order_id = cur.lastrowid
     rows = []
     for p, qty, subtotal in cart_data["items"]:
         commission = round(subtotal * COMMISSION_RATE, 2) if p["seller_id"] is not None else 0
@@ -600,12 +736,19 @@ def create_my_product():
     image_path = save_image(request.files.get("image"))
     con = db()
     cur = con.cursor()
-    cur.execute("""
-        INSERT INTO products(name,price,category,description,stock,image,seller_id)
-        VALUES(?,?,?,?,?,?,?)
-    """, (*values, image_path, session["user_id"]))
+    if USE_POSTGRES:
+        cur.execute("""
+            INSERT INTO products(name,price,category,description,stock,image,seller_id)
+            VALUES(?,?,?,?,?,?,?) RETURNING id
+        """, (*values, image_path, session["user_id"]))
+        new_id = cur.fetchone()["id"]
+    else:
+        cur.execute("""
+            INSERT INTO products(name,price,category,description,stock,image,seller_id)
+            VALUES(?,?,?,?,?,?,?)
+        """, (*values, image_path, session["user_id"]))
+        new_id = cur.lastrowid
     con.commit()
-    new_id = cur.lastrowid
     row = con.execute("""
         SELECT p.*,u.name seller_name FROM products p JOIN users u ON u.id=p.seller_id WHERE p.id=?
     """, (new_id,)).fetchone()
@@ -645,9 +788,14 @@ def create_product_admin():
     image_path = save_image(request.files.get("image"))
     con = db()
     cur = con.cursor()
-    cur.execute("INSERT INTO products(name,price,category,description,stock,image,seller_id) VALUES(?,?,?,?,?,?,NULL)", (*values, image_path))
+    if USE_POSTGRES:
+        cur.execute("INSERT INTO products(name,price,category,description,stock,image,seller_id) VALUES(?,?,?,?,?,?,NULL) RETURNING id", (*values, image_path))
+        new_id = cur.fetchone()["id"]
+    else:
+        cur.execute("INSERT INTO products(name,price,category,description,stock,image,seller_id) VALUES(?,?,?,?,?,?,NULL)", (*values, image_path))
+        new_id = cur.lastrowid
     con.commit()
-    row = con.execute("SELECT p.*, 'Compra y Venta' seller_name FROM products p WHERE id=?", (cur.lastrowid,)).fetchone()
+    row = con.execute("SELECT p.*, 'Compra y Venta' seller_name FROM products p WHERE id=?", (new_id,)).fetchone()
     con.close()
     return jsonify(dict(row)), 201
 
@@ -726,11 +874,18 @@ def create_order():
         return jsonify({"error": "No hay productos disponibles en el pedido"}), 400
 
     code = f"CV-{str(int(time.time()*1000))[-8:]}"
-    cur.execute("""
-        INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status)
-        VALUES(?,?,?,?,?,?,?,?)
-    """, (code, name, phone, email, address, notes, total, "Pendiente"))
-    order_id = cur.lastrowid
+    if USE_POSTGRES:
+        cur.execute("""
+            INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status)
+            VALUES(?,?,?,?,?,?,?,?) RETURNING id
+        """, (code, name, phone, email, address, notes, total, "Pendiente"))
+        order_id = cur.fetchone()["id"]
+    else:
+        cur.execute("""
+            INSERT INTO orders(code,customer_name,customer_phone,customer_email,customer_address,notes,total,status)
+            VALUES(?,?,?,?,?,?,?,?)
+        """, (code, name, phone, email, address, notes, total, "Pendiente"))
+        order_id = cur.lastrowid
     cur.executemany("""
         INSERT INTO order_items(order_id,product_id,product_name,price,quantity,seller_id,commission,seller_net)
         VALUES(?,?,?,?,?,?,?,?)
