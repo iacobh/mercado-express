@@ -470,6 +470,7 @@ def mp_oauth_callback():
                 "client_id": MP_CLIENT_ID,
                 "client_secret": MP_CLIENT_SECRET,
                 "code": code,
+                "state": state,
                 "redirect_uri": MP_REDIRECT_URI,
             },
             timeout=20,
