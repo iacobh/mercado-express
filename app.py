@@ -537,6 +537,72 @@ def build_cart(items):
     }, None
 
 
+@app.post("/api/mp/pro-test")
+def mp_pro_test():
+    data = request.get_json(force=True)
+    items = data.get("items", [])
+
+    cart_data, error = build_cart(items)
+    if error:
+        return jsonify({"error": error}), 400
+
+    if cart_data["seller_id"] is None:
+        return jsonify({"error": "Esta prueba es solo para productos de vendedores externos"}), 400
+
+    if not cart_data["seller_token"]:
+        return jsonify({"error": "El vendedor no tiene Mercado Pago conectado"}), 400
+
+    preference = {
+        "items": [
+            {
+                "id": str(p["id"]),
+                "title": p["name"],
+                "currency_id": "ARS",
+                "quantity": qty,
+                "unit_price": float(p["price"]),
+            }
+            for p, qty, subtotal in cart_data["items"]
+        ],
+        "marketplace_fee": cart_data["fee"],
+        "external_reference": f"TEST-{int(time.time())}",
+    }
+
+    try:
+        r = requests.post(
+            "https://api.mercadopago.com/checkout/preferences",
+            headers={
+                "Authorization": f"Bearer {cart_data['seller_token']}",
+                "Content-Type": "application/json",
+            },
+            json=preference,
+            timeout=25,
+        )
+        try:
+            result = r.json()
+        except Exception:
+            result = {"raw": r.text[:700]}
+
+        if not r.ok:
+            return jsonify({
+                "error": "Mercado Pago rechazó la preferencia",
+                "mp_status": r.status_code,
+                "detail": result,
+            }), 400
+
+        return jsonify({
+            "ok": True,
+            "init_point": result.get("init_point"),
+            "sandbox_init_point": result.get("sandbox_init_point"),
+            "preference_id": result.get("id"),
+            "marketplace_fee": cart_data["fee"],
+        })
+    except Exception as exc:
+        return jsonify({
+            "error": "No pudimos comunicarnos con Mercado Pago",
+            "detail": str(exc)[:300],
+        }), 502
+
+
 @app.post("/api/mp/pay")
 def mp_pay():
     data = request.get_json(force=True)
